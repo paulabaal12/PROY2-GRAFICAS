@@ -1,13 +1,9 @@
-use std::ops::{Add, Sub, Mul, Div};
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
-
-
 
 impl Vec3 {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
@@ -18,20 +14,7 @@ impl Vec3 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
-    pub fn length(&self) -> f32 {
-        self.dot(*self).sqrt()
-    }
-
-    pub fn normalize(&self) -> Self {
-        let len = self.length();
-        Vec3 {
-            x: self.x / len,
-            y: self.y / len,
-            z: self.z / len,
-        }
-    }
-
-    pub fn cross(&self, other: Vec3) -> Self {
+    pub fn cross(&self, other: Vec3) -> Vec3 {
         Vec3 {
             x: self.y * other.z - self.z * other.y,
             y: self.z * other.x - self.x * other.z,
@@ -39,26 +22,28 @@ impl Vec3 {
         }
     }
 
-    
-    pub fn element_wise_mul(&self, other: Vec3) -> Vec3 {
-
+    pub fn normalize(&self) -> Vec3 {
+        let len = (self.x * self.x + self.y * self.y + self.z * self.z).sqrt();
         Vec3 {
-
-            x: self.x * other.x,
-
-            y: self.y * other.y,
-
-            z: self.z * other.z,
-
+            x: self.x / len,
+            y: self.y / len,
+            z: self.z / len,
         }
+    }
 
+    pub fn element_wise_mul(&self, other: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x * other.x,
+            y: self.y * other.y,
+            z: self.z * other.z,
+        }
     }
 }
 
-impl Add for Vec3 {
+impl std::ops::Add for Vec3 {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> Self::Output {
         Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
@@ -67,10 +52,10 @@ impl Add for Vec3 {
     }
 }
 
-impl Sub for Vec3 {
+impl std::ops::Sub for Vec3 {
     type Output = Self;
 
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self::Output {
         Vec3 {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -79,10 +64,10 @@ impl Sub for Vec3 {
     }
 }
 
-impl Mul<f32> for Vec3 {
+impl std::ops::Mul<f32> for Vec3 {
     type Output = Self;
 
-    fn mul(self, scalar: f32) -> Self {
+    fn mul(self, scalar: f32) -> Self::Output {
         Vec3 {
             x: self.x * scalar,
             y: self.y * scalar,
@@ -91,10 +76,10 @@ impl Mul<f32> for Vec3 {
     }
 }
 
-impl Div<f32> for Vec3 {
+impl std::ops::Div<f32> for Vec3 {
     type Output = Self;
 
-    fn div(self, scalar: f32) -> Self {
+    fn div(self, scalar: f32) -> Self::Output {
         Vec3 {
             x: self.x / scalar,
             y: self.y / scalar,

@@ -1,49 +1,41 @@
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 
+#[derive(Clone)]
 pub struct Camera {
-    pub position: Vec3,
-    pub target: Vec3,
-    pub up: Vec3,
-    pub fov: f32,
-    pub aspect_ratio: f32,
-    pub near_plane: f32,
-    pub far_plane: f32,
+    pub origin: Vec3,
+    pub lower_left_corner: Vec3,
+    pub horizontal: Vec3,
+    pub vertical: Vec3,
+    pub position: Vec3, // Add position field
 }
 
 impl Camera {
-    pub fn new(position: Vec3, target: Vec3, up: Vec3, fov: f32, aspect_ratio: f32, near_plane: f32, far_plane: f32) -> Self {
+    pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f32, aspect: f32, _aperture: f32, focus_dist: f32) -> Self {
+        let theta = vfov.to_radians();
+        let half_height = (theta / 2.0).tan();
+        let half_width = aspect * half_height;
+        let origin = lookfrom;
+        let w = (lookfrom - lookat).normalize();
+        let u = vup.cross(w).normalize();
+        let v = w.cross(u);
+        let lower_left_corner = origin - u * half_width * focus_dist - v * half_height * focus_dist - w * focus_dist;
+        let horizontal = u * 2.0 * half_width * focus_dist;
+        let vertical = v * 2.0 * half_height * focus_dist;
+
         Camera {
-            position,
-            target,
-            up,
-            fov,
-            aspect_ratio,
-            near_plane,
-            far_plane,
+            origin,
+            lower_left_corner,
+            horizontal,
+            vertical,
+            position: lookfrom, // Initialize position
         }
     }
 
-    pub fn get_ray(&self, u: f32, v: f32) -> Ray {
-        let forward = (self.target - self.position).normalize();
-        let right = forward.cross(self.up).normalize();
-        let up = right.cross(forward).normalize();
-
-        let half_height = (self.fov.to_radians() / 2.0).tan();
-        let half_width = self.aspect_ratio * half_height;
-
-        let lower_left_corner = self.position - right * half_width - up * half_height + forward;
-        let horizontal = right * 2.0 * half_width;
-        let vertical = up * 2.0 * half_height;
-
+    pub fn get_ray(&self, s: f32, t: f32) -> Ray {
         Ray {
-            origin: self.position,
-            direction: (lower_left_corner + horizontal * u + vertical * v - self.position).normalize(),
+            origin: self.origin,
+            direction: self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin,
         }
-    }
-
-    pub fn zoom(&mut self, amount: f32) {
-        let direction = (self.target - self.position).normalize();
-        self.position = self.position + direction * amount;
     }
 }

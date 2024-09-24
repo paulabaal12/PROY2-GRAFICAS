@@ -1,44 +1,40 @@
-use crate::object::{Object, Sphere, Cube};
+use crate::object::Object;
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::light::Light;
 use crate::material::Material;
-use crate::camera::Camera; // Importar la cámara
+use crate::camera::Camera;
 
 pub struct Scene {
     pub objects: Vec<Object>,
     pub lights: Vec<Light>,
-    pub camera: Camera, // Incluir el campo de la cámara
+    camera: Camera
 }
 
 impl Scene {
-    pub fn new(camera: Camera) -> Self { // Modificar el método new para aceptar un parámetro de cámara
+    pub fn new(camera: Camera) -> Self {
+
         Scene {
+
+            camera,
+
             objects: Vec::new(),
             lights: Vec::new(),
-            camera, // Inicializar el campo de la cámara
         }
     }
 
     pub fn add_object(&mut self, object: Object) {
         self.objects.push(object);
     }
+    pub fn set_camera(&mut self, camera: Camera) {
+        self.camera = camera;
+    }
 
     pub fn add_light(&mut self, light: Light) {
         self.lights.push(light);
     }
 
-    pub fn render(&self, width: u32, height: u32, buffer: &mut [u32]) {
-        for (i, pixel) in buffer.iter_mut().enumerate() {
-            let x = (i % width as usize) as f32 / width as f32;
-            let y = (i / width as usize) as f32 / height as f32;
-            let ray = self.camera.get_ray(x, y);
-            let color = self.trace_ray(&ray, 0);
-            *pixel = ((color.x * 255.0) as u32) << 16 | ((color.y * 255.0) as u32) << 8 | ((color.z * 255.0) as u32);
-        }
-    }
-
-    fn trace_ray(&self, ray: &Ray, depth: u32) -> Vec3 {
+    fn trace_ray(&self, ray: &Ray, _depth: u32) -> Vec3 {
         if let Some(hit) = self.hit_objects(ray) {
             let mut color = Vec3::new(0.0, 0.0, 0.0);
             for light in &self.lights {
@@ -66,11 +62,23 @@ impl Scene {
         closest_hit
     }
 
-    fn compute_lighting(&self, point: &Vec3, light_dir: &Vec3, normal: &Vec3) -> f32 {
+    fn compute_lighting(&self, _point: &Vec3, light_dir: &Vec3, normal: &Vec3) -> f32 {
         normal.dot(*light_dir).max(0.0)
     }
-}
-
+       
+    pub fn render(&self, width: u32, height: u32, buffer: &mut [u32]) {
+            // Lógica de renderizado aquí
+            // Por ejemplo, podrías recorrer cada píxel y calcular el color basado en los objetos en la escena y las luces
+    
+            for j in 0..height {
+                for i in 0..width {
+                    let color = Vec3::new(0.0, 0.0, 0.0); // Aquí iría el cálculo del color basado en ray tracing
+                    let index = (j * width + i) as usize;
+                    buffer[index] = (color.x * 255.0) as u32 | ((color.y * 255.0) as u32) << 8 | ((color.z * 255.0) as u32) << 16;
+                }
+            }
+        }
+    }
 pub struct HitRecord {
     pub point: Vec3,
     pub normal: Vec3,

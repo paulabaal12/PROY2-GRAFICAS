@@ -1,21 +1,9 @@
-use crate::ray::Ray;
 use crate::vec3::Vec3;
 use crate::material::Material;
-use crate::scene::HitRecord;
 use crate::texture::Texture;
 use std::rc::Rc;
-
-pub enum Object {
-    Cube(Cube),
-}
-
-impl Object {
-    pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        match self {
-            Object::Cube(cube) => cube.hit(ray, t_min, t_max),
-        }
-    }
-}
+use crate::ray::Ray;
+use crate::scene::HitRecord;
 
 pub struct Cube {
     pub min: Vec3,
@@ -56,7 +44,7 @@ impl Cube {
     }
 
     pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        // Implementar la lógica de intersección con un rayo
+
         None
     }
 }

@@ -1,18 +1,21 @@
-use crate::texture::Texture;
 use crate::vec3::Vec3;
 
-#[derive(Clone)]
 pub struct Material {
     pub albedo: Vec3,
+    pub diffuse: f32,
     pub specular: f32,
-    pub transparency: f32,
-    pub reflectivity: f32,
-    pub texture: Option<Texture>,
+    pub shininess: f32,
+    pub texture: Option<crate::texture::Texture>,
 }
 
 impl Material {
-    pub fn new(albedo: Vec3, specular: f32, transparency: f32, reflectivity: f32, texture_path: Option<&str>) -> Self {
-        let texture = texture_path.map(|path| Texture::load(path));
-        Material { albedo, specular, transparency, reflectivity, texture }
+    pub fn new(albedo: Vec3, diffuse: f32, specular: f32, shininess: f32, texture: Option<crate::texture::Texture>) -> Self {
+        Material {
+            albedo,
+            diffuse,
+            specular,
+            shininess,
+            texture,
+        }
     }
 }

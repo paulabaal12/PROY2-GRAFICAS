@@ -1,0 +1,9 @@
+[package]
+name = "proyecto2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+image = "0.25.2" 
+minifb = "0.27.0"
+bytemuck = "1.7"

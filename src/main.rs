@@ -1,14 +1,19 @@
-mod camera;
-mod material;
-mod object;
-mod scene;
-mod texture;
-mod vec3;
-
 use minifb::{Key, Window, WindowOptions};
 use scene::Scene;
 use vec3::Vec3;
 use camera::Camera;
+use material::Material;
+use object::{Object, Cube};
+use light::Light;
+
+mod vec3;
+mod ray;
+mod camera;
+mod material;
+mod object;
+mod scene;
+mod light;
+mod texture;
 
 const WIDTH: usize = 800;
 const HEIGHT: usize = 600;
@@ -27,8 +32,6 @@ fn main() {
         panic!("{}", e);
     });
 
-    let mut scene = Scene::new();
-
     // Crear la cámara
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 10.0),  // posición
@@ -40,28 +43,22 @@ fn main() {
         100.0,                      // plano lejano
     );
 
+    let mut scene = Scene::new(camera);
+
     // Materiales
-    let grass_material = material::Material::new(Vec3::new(0.1, 0.8, 0.1), 0.5, 0.0, 0.3, Some("textures/grass.png"));
-    let dirt_material = material::Material::new(Vec3::new(0.6, 0.4, 0.2), 0.5, 0.0, 0.1, Some("textures/dirt.png"));
+    let grass_material = Material::new(Vec3::new(0.1, 0.8, 0.1), 0.5, 0.0, 0.0, None);
+    let dirt_material = Material::new(Vec3::new(0.6, 0.4, 0.2), 0.5, 0.0, 0.0, None);
 
-    // Crear el plano de grama y tierra
-    let size = 10;
-    for x in -size..=size {
-        for z in -size..=size {
-            let material = if (x + z) % 2 == 0 { &grass_material } else { &dirt_material };
-            scene.add_object(object::Object::Cube(object::Cube::new(
-                Vec3::new(x as f32, 0.0, z as f32),
-                Vec3::new((x + 1) as f32, 1.0, (z + 1) as f32),
-                material.clone(),
-            )));
-        }
-    }
+    // Cubos
+    let grass_cube = Cube::new(Vec3::new(-1.0, -1.0, -1.0), Vec3::new(1.0, 0.0, 1.0), grass_material);
+    let dirt_cube = Cube::new(Vec3::new(-1.0, -2.0, -1.0), Vec3::new(1.0, -1.0, 1.0), dirt_material);
 
-    // Luces
-    scene.add_light(scene::Light::new(
-        Vec3::new(0.0, 50.0, -10.0),  // posición
-        Vec3::new(1.0, 1.0, 0.9),     // color (luz del sol)
-    ));
+    scene.add_object(Object::Cube(grass_cube));
+    scene.add_object(Object::Cube(dirt_cube));
+
+    // Luz
+    let light = Light::new(Vec3::new(0.0, 10.0, 0.0), Vec3::new(1.0, 1.0, 1.0));
+    scene.add_light(light);
 
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
 

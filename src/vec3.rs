@@ -1,23 +1,33 @@
-use std::ops::{Add, Sub, Mul};
+use std::ops::{Add, Sub, Mul, Div};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vec3 {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
+
+
 impl Vec3 {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Vec3 { x, y, z }
     }
 
+    pub fn dot(&self, other: Vec3) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
+    }
+
+    pub fn length(&self) -> f32 {
+        self.dot(*self).sqrt()
+    }
+
     pub fn normalize(&self) -> Self {
-        let mag = (self.x * self.x + self.y * self.y + self.z * self.z).sqrt();
+        let len = self.length();
         Vec3 {
-            x: self.x / mag,
-            y: self.y / mag,
-            z: self.z / mag,
+            x: self.x / len,
+            y: self.y / len,
+            z: self.z / len,
         }
     }
 
@@ -27,6 +37,21 @@ impl Vec3 {
             y: self.z * other.x - self.x * other.z,
             z: self.x * other.y - self.y * other.x,
         }
+    }
+
+    
+    pub fn element_wise_mul(&self, other: Vec3) -> Vec3 {
+
+        Vec3 {
+
+            x: self.x * other.x,
+
+            y: self.y * other.y,
+
+            z: self.z * other.z,
+
+        }
+
     }
 }
 
@@ -62,6 +87,18 @@ impl Mul<f32> for Vec3 {
             x: self.x * scalar,
             y: self.y * scalar,
             z: self.z * scalar,
+        }
+    }
+}
+
+impl Div<f32> for Vec3 {
+    type Output = Self;
+
+    fn div(self, scalar: f32) -> Self {
+        Vec3 {
+            x: self.x / scalar,
+            y: self.y / scalar,
+            z: self.z / scalar,
         }
     }
 }

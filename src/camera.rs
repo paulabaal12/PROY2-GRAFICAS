@@ -1,4 +1,5 @@
 use crate::vec3::Vec3;
+use crate::ray::Ray;
 
 pub struct Camera {
     pub position: Vec3,
@@ -45,9 +46,4 @@ impl Camera {
         let direction = (self.target - self.position).normalize();
         self.position = self.position + direction * amount;
     }
-}
-
-pub struct Ray {
-    pub origin: Vec3,
-    pub direction: Vec3,
 }

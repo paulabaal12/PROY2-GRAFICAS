@@ -1,41 +1,49 @@
-use crate::vec3::Vec3;
-use crate::ray::Ray;
 
-#[derive(Clone)]
+use nalgebra_glm::Vec3;
+use std::f32::consts::PI;
+
 pub struct Camera {
-    pub origin: Vec3,
-    pub lower_left_corner: Vec3,
-    pub horizontal: Vec3,
-    pub vertical: Vec3,
-    pub position: Vec3, // Add position field
+    pub eye: Vec3,
+    pub center: Vec3,
+    pub up: Vec3
 }
 
 impl Camera {
-    pub fn new(lookfrom: Vec3, lookat: Vec3, vup: Vec3, vfov: f32, aspect: f32, _aperture: f32, focus_dist: f32) -> Self {
-        let theta = vfov.to_radians();
-        let half_height = (theta / 2.0).tan();
-        let half_width = aspect * half_height;
-        let origin = lookfrom;
-        let w = (lookfrom - lookat).normalize();
-        let u = vup.cross(w).normalize();
-        let v = w.cross(u);
-        let lower_left_corner = origin - u * half_width * focus_dist - v * half_height * focus_dist - w * focus_dist;
-        let horizontal = u * 2.0 * half_width * focus_dist;
-        let vertical = v * 2.0 * half_height * focus_dist;
-
+    pub fn new(eye: Vec3, center: Vec3, up: Vec3) -> Self {
         Camera {
-            origin,
-            lower_left_corner,
-            horizontal,
-            vertical,
-            position: lookfrom, // Initialize position
+            eye,
+            center,
+            up
         }
     }
 
-    pub fn get_ray(&self, s: f32, t: f32) -> Ray {
-        Ray {
-            origin: self.origin,
-            direction: self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin,
-        }
+    pub fn base_change(&self, vector: &Vec3) -> Vec3 {
+        let forward = (self.center - self.eye).normalize();
+        let right = forward.cross(&self.up).normalize();
+        let up = right.cross(&forward).normalize();
+
+        let rotated = vector.x * right + vector.y * up - vector.z * forward;
+
+        return rotated.normalize();
+    }
+
+    pub fn orbit(&mut self, delta_yaw: f32, delta_pitch: f32) {
+        let radius_vector = self.eye - self.center;
+        let radius = radius_vector.magnitude();
+
+        let current_yaw = radius_vector.z.atan2(radius_vector.x);
+        let radius_xz = (radius_vector.x * radius_vector.x + radius_vector.z * radius_vector.z).sqrt();
+        let current_pitch = (-radius_vector.y).atan2(radius_xz);
+
+        let new_yaw = (current_yaw + delta_yaw) % (2.0 * PI);
+        let new_pitch = (current_pitch + delta_pitch).clamp(-PI / 2.0 + 0.1, PI / 2.0 - 0.1);
+
+        let new_eye = self.center + Vec3::new(
+            radius * new_yaw.cos() * new_pitch.cos(),
+            -radius * new_pitch.sin(),
+            radius * new_yaw.sin() * new_pitch.cos()
+        );
+
+        self.eye = new_eye;
     }
 }

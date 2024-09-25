@@ -178,10 +178,10 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
     }
 }
 fn main() {
-    let window_width = 800;
-    let window_height = 600;
-    let framebuffer_width = 800;
-    let framebuffer_height = 600;
+    let window_width = 600;
+    let window_height = 400;
+    let framebuffer_width = 600;
+    let framebuffer_height = 400;
     let frame_delay = Duration::from_millis(16);
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
@@ -199,12 +199,12 @@ let stone_texture = Rc::new(Texture::new("textures/snoww.png"));
 
 let cube = Cube::new(
     Vec3::new(-5.0, -1.0, -5.0),
-    Vec3::new(5.0, 0.0, 5.0),
+    Vec3::new(4.0, 0.0, 4.0),
     Material::new(
-        [1.0, 0.0, 0.0, 0.0],  // albedo
-        [255, 255, 255],       // diffuse color (white)
-        50.0,                  // specular
-        1.0,                   // refractive index
+        [1.0, 0.0, 0.0, 0.0],  
+        [255, 255, 255],       
+        50.0,                  
+        1.0,                   
         Some(grass_texture.clone())
     ),
     Material::new(

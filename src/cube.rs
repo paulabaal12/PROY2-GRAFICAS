@@ -1,36 +1,50 @@
-use nalgebra_glm::{Vec3, dot};
-use crate::ray_intersect::{Intersect, RayIntersect};
+use nalgebra_glm::Vec3;
+use std::rc::Rc;
+use image::DynamicImage; 
 use crate::material::Material;
+use crate::ray_intersect::{Intersect, RayIntersect};
 
 pub struct Cube {
     pub min: Vec3,
     pub max: Vec3,
-    pub materials: [Material; 6],
+    pub topface_texture: Rc<DynamicImage>,
+    pub sideface_texture: Rc<DynamicImage>,
+    pub bottomface_texture: Rc<DynamicImage>,
 }
 
 impl Cube {
     fn get_uv(&self, point: &Vec3, normal: &Vec3) -> (f32, f32) {
-        let u;
-        let v;
+        let (u, v) = if normal.y.abs() > 0.5 {  // Superior o inferior
+            (
+                (point.x - self.min.x) / (self.max.x - self.min.x),
+                (point.z - self.min.z) / (self.max.z - self.min.z)
+            )
+        } else if normal.x.abs() > 0.5 {  // Lados (izquierda o derecha)
+            (
+                (point.z - self.min.z) / (self.max.z - self.min.z),
+                (point.y - self.min.y) / (self.max.y - self.min.y)
+            )
+        } else {  // Frente o atrás
+            (
+                (point.x - self.min.x) / (self.max.x - self.min.x),
+                (point.y - self.min.y) / (self.max.y - self.min.y)
+            )
+        };
 
-        if normal.x.abs() > 0.5 {
-            u = (point.z - self.min.z) / (self.max.z - self.min.z);
-            v = (point.y - self.min.y) / (self.max.y - self.min.y);
-        } else if normal.y.abs() > 0.5 {
-            u = (point.x - self.min.x) / (self.max.x - self.min.x);
-            v = (point.z - self.min.z) / (self.max.z - self.min.z);
-        } else {
-            u = (point.x - self.min.x) / (self.max.x - self.min.x);
-            v = (point.y - self.min.y) / (self.max.y - self.min.y);
-        }
-
-        (u, v)
+        (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0))
     }
 
-    fn intersect_plane(&self, origin: &Vec3, direction: &Vec3, plane_point: &Vec3, plane_normal: &Vec3) -> Option<Vec3> {
-        let denom = dot(&plane_normal, direction);
-        if denom.abs() > 1e-6 {
-            let t = dot(&(plane_point - origin), plane_normal) / denom;
+    fn intersect_plane(
+        &self,
+        origin: &Vec3,
+        direction: &Vec3,
+        plane_point: &Vec3,
+        plane_normal: &Vec3
+    ) -> Option<Vec3> {
+        let denom = direction.dot(plane_normal);
+        let epsilon = 1e-6; 
+        if denom.abs() > epsilon {
+            let t = (plane_point - origin).dot(plane_normal) / denom;
             if t >= 0.0 {
                 return Some(origin + direction * t);
             }
@@ -38,6 +52,15 @@ impl Cube {
         None
     }
     
+    fn get_material_for_face(&self, normal: &Vec3) -> Material {
+        if normal.y > 0.5 {
+            Material::new(Some((*self.topface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
+        } else if normal.y < -0.5 {
+            Material::new(Some((*self.bottomface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
+        } else {
+            Material::new(Some((*self.sideface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
+        }
+    }
 }
 
 impl RayIntersect for Cube {
@@ -46,21 +69,21 @@ impl RayIntersect for Cube {
         let mut min_distance = f32::INFINITY;
 
         let normals = [
-            Vec3::new(1.0, 0.0, 0.0),  // Right face
-            Vec3::new(-1.0, 0.0, 0.0), // Left face
-            Vec3::new(0.0, 1.0, 0.0),  // Top face
-            Vec3::new(0.0, -1.0, 0.0), // Bottom face
-            Vec3::new(0.0, 0.0, 1.0),  // Front face
-            Vec3::new(0.0, 0.0, -1.0), // Back face
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(-1.0, 0.0, 0.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            Vec3::new(0.0, -1.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+            Vec3::new(0.0, 0.0, -1.0),
         ];
 
         let points = [
-            Vec3::new(self.max.x, 0.0, 0.0),  // Right face
-            Vec3::new(self.min.x, 0.0, 0.0),  // Left face
-            Vec3::new(0.0, self.max.y, 0.0),  // Top face
-            Vec3::new(0.0, self.min.y, 0.0),  // Bottom face
-            Vec3::new(0.0, 0.0, self.max.z),  // Front face
-            Vec3::new(0.0, 0.0, self.min.z),  // Back face
+            Vec3::new(self.max.x, self.min.y, self.min.z),
+            Vec3::new(self.min.x, self.min.y, self.min.z),
+            Vec3::new(self.min.x, self.max.y, self.min.z),
+            Vec3::new(self.min.x, self.min.y, self.min.z),
+            Vec3::new(self.min.x, self.min.y, self.max.z),
+            Vec3::new(self.min.x, self.min.y, self.min.z),
         ];
 
         for i in 0..6 {
@@ -69,22 +92,19 @@ impl RayIntersect for Cube {
                    intersect_point.y >= self.min.y && intersect_point.y <= self.max.y &&
                    intersect_point.z >= self.min.z && intersect_point.z <= self.max.z {
                     
-                    let distance = dot(&(intersect_point - origin), direction);
+                    let distance = (intersect_point - origin).magnitude();
                     if distance < min_distance {
                         min_distance = distance;
+                        let (u, v) = self.get_uv(&intersect_point, &normals[i]);
                         closest_intersect = Intersect {
                             is_intersecting: true,
                             distance,
                             point: intersect_point,
                             normal: normals[i],
-                            u: None,
-                            v: None,
-                            material: self.materials[i].clone(),
+                            u: Some(u),
+                            v: Some(v),
+                            material: self.get_material_for_face(&normals[i]),
                         };
-
-                        let (u, v) = self.get_uv(&intersect_point, &normals[i]);
-                        closest_intersect.u = Some(u);
-                        closest_intersect.v = Some(v);
                     }
                 }
             }

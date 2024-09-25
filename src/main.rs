@@ -11,6 +11,7 @@ use image::open;
 use nalgebra_glm::{Vec3, normalize};
 use std::time::Duration;
 use std::f32::consts::PI;
+use std::rc::Rc;
 
 use crate::color::Color;
 use crate::ray_intersect::{Intersect, RayIntersect};
@@ -19,6 +20,7 @@ use crate::camera::Camera;
 use crate::light::Light;
 use crate::cube::Cube;
 use crate::material::Material;
+
 
 const ORIGIN_BIAS: f32 = 1e-4;
 const SKYBOX_COLOR: Color = Color::new(68, 142, 228);
@@ -38,7 +40,6 @@ fn reflect(incident: &Vec3, normal: &Vec3) -> Vec3 {
 
 fn refract(incident: &Vec3, normal: &Vec3, eta_t: f32) -> Vec3 {
     let cosi = -incident.dot(normal).max(-1.0).min(1.0);
-    
     let (n_cosi, eta, n_normal);
 
     if cosi < 0.0 {
@@ -50,9 +51,9 @@ fn refract(incident: &Vec3, normal: &Vec3, eta_t: f32) -> Vec3 {
         eta = eta_t;
         n_normal = *normal;
     }
-    
+
     let k = 1.0 - eta * eta * (1.0 - n_cosi * n_cosi);
-    
+
     if k < 0.0 {
         reflect(incident, &n_normal)
     } else {
@@ -82,6 +83,7 @@ fn cast_shadow(
 
     shadow_intensity
 }
+
 fn cast_ray(
     ray_origin: &Vec3,
     ray_direction: &Vec3,
@@ -108,6 +110,34 @@ fn cast_ray(
         return SKYBOX_COLOR;
     }
 
+    
+    let light_dir = (light.position - intersect.point).normalize();
+    let view_dir = (ray_origin - intersect.point).normalize();
+    let reflect_dir = reflect(&-light_dir, &intersect.normal).normalize();
+
+    let shadow_intensity = cast_shadow(&intersect, light, objects);
+    let light_intensity = light.intensity * (1.0 - shadow_intensity);
+    let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(intersect.material.specular);
+    let specular = Color::new(light.color[0], light.color[1], light.color[2]) * intersect.material.albedo[1] * specular_intensity * light_intensity;
+
+    let mut reflect_color = Color::black();
+    let reflectivity = intersect.material.albedo[2];
+    if reflectivity > 0.0 {
+        let reflect_dir = reflect(&ray_direction, &intersect.normal).normalize();
+        let reflect_origin = offset_origin(&intersect, &reflect_dir);
+        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
+    }
+
+
+    let mut refract_color = Color::black();
+    let transparency = intersect.material.albedo[3];
+    if transparency > 0.0 {
+        let refract_dir = refract(&ray_direction, &intersect.normal, intersect.material.refractive_index);
+        let refract_origin = offset_origin(&intersect, &refract_dir);
+        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1);
+    }
+
+    (specular) * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency);
     let u = intersect.u.unwrap_or(0.0);
     let v = intersect.v.unwrap_or(0.0);
     let texture_color = intersect.material.get_texture_color(u, v);
@@ -117,7 +147,6 @@ fn cast_ray(
 
     light_color
 }
-
 
 pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
@@ -144,7 +173,9 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
             framebuffer.point(x, y);
         }
     }
-}fn main() {
+}
+
+fn main() {
     let window_width = 800;
     let window_height = 600;
     let framebuffer_width = 800;
@@ -154,29 +185,24 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
 
     let mut window = Window::new(
-        "Refractor",
+        "ICEEE",
         window_width,
         window_height,
         WindowOptions::default(),
     )
     .unwrap();
-let grass_texture = open("textures/grass.png").expect("Failed to load grass texture");
-let dirt_texture = open("textures/water.png").expect("Failed to load dirt texture");
 
-let materials_1 = [
-    Material::new(Some(grass_texture.clone())), // Right face
-    Material::new(Some(grass_texture.clone())), // Left face
-    Material::new(Some(dirt_texture.clone())), // Top face
-    Material::new(Some(grass_texture.clone())),  // Bottom face
-    Material::new(Some(grass_texture.clone())), // Front face
-    Material::new(Some(grass_texture.clone())), // Back face
-];
+    let grass_texture = Rc::new(open("textures/water.png").expect("Failed to load grass texture"));
+    let dirt_texture = Rc::new(open("textures/snoww.png").expect("Failed to load dirt texture"));
+    let stone_texture = Rc::new(open("textures/snoww.png").expect("Failed to load stone texture"));
 
-let cube = Cube {
-    min: Vec3::new(-5.0, -1.0, -5.0),
-    max: Vec3::new(5.0, 0.0, 5.0),
-    materials: materials_1,
-};
+    let cube = Cube {
+        min: Vec3::new(-5.0, -1.0, -5.0),
+        max: Vec3::new(5.0, 0.0, 5.0),
+        topface_texture: grass_texture.clone(),
+        sideface_texture: stone_texture.clone(),
+        bottomface_texture: dirt_texture.clone(),
+    };
 
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 10.0),

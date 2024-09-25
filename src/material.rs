@@ -4,11 +4,21 @@ use image::{DynamicImage, GenericImageView, Rgba};
 #[derive(Debug)]
 pub struct Material {
     pub texture: Option<DynamicImage>,
-}
+    pub specular: f32,
+    pub albedo: [f32; 4],
+    pub refractive_index: f32,
+    }
 
 impl Material {
-    pub fn new(texture: Option<DynamicImage>) -> Self {
-        Material { texture }
+    pub fn new(texture: Option<DynamicImage>,
+        specular: f32,
+        albedo: [f32; 4],
+        refractive_index: f32, ) -> Self {
+        Material { texture ,
+            specular,
+            albedo,
+            refractive_index,}
+        
     }
 
     pub fn get_texture_color(&self, u: f32, v: f32) -> Rgba<u8> {

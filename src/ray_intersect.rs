@@ -19,7 +19,7 @@ impl Intersect {
             distance: f32::INFINITY,
             point: Vec3::zeros(),
             normal: Vec3::zeros(),
-            material: Material::new(None),
+            material: Material::new(None, 0.0, [0.0, 0.0, 0.0, 0.0], 1.0),
             u: None,
             v: None,
         }

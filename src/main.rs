@@ -82,8 +82,7 @@ fn cast_shadow(
 
     shadow_intensity
 }
-
-pub fn cast_ray(
+fn cast_ray(
     ray_origin: &Vec3,
     ray_direction: &Vec3,
     objects: &[Box<dyn RayIntersect>],
@@ -109,37 +108,16 @@ pub fn cast_ray(
         return SKYBOX_COLOR;
     }
 
-    let light_dir = (light.position - intersect.point).normalize();
-    let view_dir = (ray_origin - intersect.point).normalize();
-    let reflect_dir = reflect(&-light_dir, &intersect.normal).normalize();
+    let u = intersect.u.unwrap_or(0.0);
+    let v = intersect.v.unwrap_or(0.0);
+    let texture_color = intersect.material.get_texture_color(u, v);
 
-    let shadow_intensity = cast_shadow(&intersect, light, objects);
-    let light_intensity = light.intensity * (1.0 - shadow_intensity);
+    let diffuse_intensity = intersect.normal.dot(&(-ray_direction)).max(0.0).min(1.0);
+    let light_color = Color::new(texture_color[0], texture_color[1], texture_color[2]) * diffuse_intensity;
 
-    let diffuse_intensity = intersect.normal.dot(&light_dir).max(0.0).min(1.0);
-    let diffuse = Color::new(intersect.material.diffuse[0], intersect.material.diffuse[1], intersect.material.diffuse[2]) * intersect.material.albedo[0] * diffuse_intensity * light_intensity;
-
-    let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(intersect.material.specular);
-    let specular = Color::new(light.color[0], light.color[1], light.color[2]) * intersect.material.albedo[1] * specular_intensity * light_intensity;
-
-    let mut reflect_color = Color::black();
-    let reflectivity = intersect.material.albedo[2];
-    if reflectivity > 0.0 {
-        let reflect_dir = reflect(&ray_direction, &intersect.normal).normalize();
-        let reflect_origin = offset_origin(&intersect, &reflect_dir);
-        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
-    }
-
-    let mut refract_color = Color::black();
-    let transparency = intersect.material.albedo[3];
-    if transparency > 0.0 {
-        let refract_dir = refract(&ray_direction, &intersect.normal, intersect.material.refractive_index);
-        let refract_origin = offset_origin(&intersect, &refract_dir);
-        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1);
-    }
-
-    (diffuse + specular) * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency)
+    light_color
 }
+
 
 pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
@@ -166,8 +144,7 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
             framebuffer.point(x, y);
         }
     }
-}
-fn main() {
+}fn main() {
     let window_width = 800;
     let window_height = 600;
     let framebuffer_width = 800;
@@ -183,24 +160,23 @@ fn main() {
         WindowOptions::default(),
     )
     .unwrap();
+let grass_texture = open("textures/grass.png").expect("Failed to load grass texture");
+let dirt_texture = open("textures/water.png").expect("Failed to load dirt texture");
 
-    let snow_texture_path = "textures/snoww.png";
+let materials_1 = [
+    Material::new(Some(grass_texture.clone())), // Right face
+    Material::new(Some(grass_texture.clone())), // Left face
+    Material::new(Some(dirt_texture.clone())), // Top face
+    Material::new(Some(grass_texture.clone())),  // Bottom face
+    Material::new(Some(grass_texture.clone())), // Front face
+    Material::new(Some(grass_texture.clone())), // Back face
+];
 
-    let snow_material = Material::new(
-        [255, 255, 0], 
-        10.0,
-        [0.9, 0.1, 0.0, 0.0],
-        0.0,
-        Some(snow_texture_path),
-    );
-
-    let objects: Vec<Box<dyn RayIntersect>> = vec![
-        Box::new(Cube {
-            min: Vec3::new(-5.0, -1.0, -5.0),
-            max: Vec3::new(5.0, 0.0, 5.0),
-            material: snow_material,
-        }),
-    ];
+let cube = Cube {
+    min: Vec3::new(-5.0, -1.0, -5.0),
+    max: Vec3::new(5.0, 0.0, 5.0),
+    materials: materials_1,
+};
 
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 10.0),
@@ -215,6 +191,8 @@ fn main() {
     );
 
     let rotation_speed = PI / 10.0;
+
+    let objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if window.is_key_down(Key::Left) {

@@ -6,6 +6,7 @@ mod color;
 mod camera;
 mod light;
 mod material;
+mod cube;
 
 use minifb::{ Window, WindowOptions, Key };
 use nalgebra_glm::{Vec3, normalize};
@@ -18,6 +19,7 @@ use crate::sphere::Sphere;
 use crate::framebuffer::Framebuffer;
 use crate::camera::Camera;
 use crate::light::Light;
+use crate::cube::Cube;
 use crate::material::Material;
 
 const ORIGIN_BIAS: f32 = 1e-4;
@@ -63,7 +65,7 @@ fn refract(incident: &Vec3, normal: &Vec3, eta_t: f32) -> Vec3 {
 fn cast_shadow(
     intersect: &Intersect,
     light: &Light,
-    objects: &[Sphere],
+    objects: &[Box<dyn RayIntersect>],
 ) -> f32 {
     let light_dir = (light.position - intersect.point).normalize();
     let light_distance = (light.position - intersect.point).magnitude();
@@ -86,7 +88,7 @@ fn cast_shadow(
 pub fn cast_ray(
     ray_origin: &Vec3,
     ray_direction: &Vec3,
-    objects: &[Sphere],
+    objects: &[Box<dyn RayIntersect>],
     light: &Light,
     depth: u32,
 ) -> Color {
@@ -142,7 +144,7 @@ pub fn cast_ray(
     (diffuse + specular) * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency)
 }
 
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera, light: &Light) {
+pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
@@ -199,17 +201,17 @@ fn main() {
         0.0,
     );
 
-    let glass = Material::new(
-        Color::new(255, 255, 255),
-        1425.0,
-        [0.0, 10.0, 0.5, 0.5],
-        0.3,
+    let grass = Material::new(
+        Color::new(34, 139, 34),
+        30.0,
+        [0.8, 0.2, 0.0, 0.0],
+        0.0,
     );
 
-    let objects = [
-        Sphere { center: Vec3::new(0.0, 0.0, 0.0), radius: 1.0, material: rubber },
-        Sphere { center: Vec3::new(-1.0, -1.0, 1.5), radius: 0.5, material: ivory },
-        Sphere { center: Vec3::new(-0.3, 0.3, 1.5), radius: 0.3, material: glass },
+    let objects: Vec<Box<dyn RayIntersect>> = vec![
+        Box::new(Cube { min: Vec3::new(-0.5, -0.5, -0.5), max: Vec3::new(0.5, 0.5, 0.5), material: rubber }),
+        Box::new(Cube { min: Vec3::new(-1.5, -1.5, 0.0), max: Vec3::new(-0.5, -0.5, 1.0), material: ivory }),
+        Box::new(Cube { min: Vec3::new(0.5, 0.5, 1.0), max: Vec3::new(1.5, 1.5, 2.0), material: grass }),
     ];
 
     let mut camera = Camera::new(
@@ -252,4 +254,4 @@ fn main() {
 
         std::thread::sleep(frame_delay);
     }
-}   
+}

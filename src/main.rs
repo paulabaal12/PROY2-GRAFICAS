@@ -7,6 +7,7 @@ mod material;
 mod cube;
 
 use minifb::{Window, WindowOptions, Key};
+use image::open;
 use nalgebra_glm::{Vec3, normalize};
 use std::time::Duration;
 use std::f32::consts::PI;
@@ -183,69 +184,32 @@ fn main() {
     )
     .unwrap();
 
-    let rubber = Material::new(
-        [80, 0, 0],
-        1.0,
+    let snow_texture_path = "textures/snoww.png";
+
+    let snow_material = Material::new(
+        [255, 255, 0], 
+        10.0,
         [0.9, 0.1, 0.0, 0.0],
         0.0,
-        None,
-    );
-    
-    let ivory = Material::new(
-        [100, 100, 80],
-        50.0,
-        [0.6, 0.3, 0.6, 0.0],
-        0.0,
-        None,
-    );
-    
-    let grass = Material::new(
-        [34, 139, 34],
-        30.0,
-        [0.8, 0.2, 0.0, 0.0],
-        0.0,
-        Some("textures/grass.png"),
-    );
-
-    let dirt = Material::new(
-        [139, 69, 19],
-        30.0,
-        [0.8, 0.2, 0.0, 0.0],
-        0.0,
-        Some("textures/dirt.png"),
+        Some(snow_texture_path),
     );
 
     let objects: Vec<Box<dyn RayIntersect>> = vec![
         Box::new(Cube {
-            min: Vec3::new(-0.5, -0.5, -0.5),
-            max: Vec3::new(0.5, 0.5, 0.5),
-            material: rubber,
-        }),
-        Box::new(Cube {
-            min: Vec3::new(-1.5, -1.5, 0.0),
-            max: Vec3::new(-0.5, -0.5, 1.0),
-            material: ivory,
-        }),
-        Box::new(Cube {
-            min: Vec3::new(0.5, 0.5, 1.0),
-            max: Vec3::new(1.5, 1.5, 2.0),
-            material: grass,
-        }),
-        Box::new(Cube {
-            min: Vec3::new(-2.0, -2.0, -1.0),
-            max: Vec3::new(2.0, 2.0, 0.0),
-            material: dirt,
+            min: Vec3::new(-5.0, -1.0, -5.0),
+            max: Vec3::new(5.0, 0.0, 5.0),
+            material: snow_material,
         }),
     ];
 
     let mut camera = Camera::new(
-        Vec3::new(0.0, 0.0, 5.0),
+        Vec3::new(0.0, 5.0, 10.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
     );
 
     let light = Light::new(
-        Vec3::new(1.0, -1.0, 5.0),
+        Vec3::new(5.0, 10.0, 5.0),
         [255, 255, 255],
         1.0,
     );

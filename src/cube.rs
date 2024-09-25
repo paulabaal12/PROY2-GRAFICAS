@@ -1,6 +1,6 @@
-use nalgebra_glm::Vec3;
+use nalgebra_glm::{Vec3, vec3};
+use crate::ray_intersect::{Intersect, RayIntersect};
 use crate::material::Material;
-use crate::ray_intersect::{RayIntersect, Intersect};
 
 pub struct Cube {
     pub min: Vec3,
@@ -9,67 +9,75 @@ pub struct Cube {
 }
 
 impl RayIntersect for Cube {
-    fn ray_intersect(&self, ray_origin: &Vec3, ray_direction: &Vec3) -> Intersect {
-        let mut t_min = (self.min.x - ray_origin.x) / ray_direction.x;
-        let mut t_max = (self.max.x - ray_origin.x) / ray_direction.x;
+    fn ray_intersect(&self, orig: &Vec3, dir: &Vec3) -> Intersect {
+        let inv_dir = vec3(1.0, 1.0, 1.0).component_div(dir);
+        let t0s = (self.min - orig).component_mul(&inv_dir);
+        let t1s = (self.max - orig).component_mul(&inv_dir);
 
-        if t_min > t_max {
-            std::mem::swap(&mut t_min, &mut t_max);
-        }
+        let t_min = t0s.zip_map(&t1s, |a, b| a.min(b));
+        let t_max = t0s.zip_map(&t1s, |a, b| a.max(b));
 
-        let mut ty_min = (self.min.y - ray_origin.y) / ray_direction.y;
-        let mut ty_max = (self.max.y - ray_origin.y) / ray_direction.y;
+        let t_near = t_min.max();
+        let t_far = t_max.min();
 
-        if ty_min > ty_max {
-            std::mem::swap(&mut ty_min, &mut ty_max);
-        }
-
-        if (t_min > ty_max) || (ty_min > t_max) {
+        if t_near > t_far || t_far < 0.0 {
             return Intersect::empty();
         }
 
-        if ty_min > t_min {
-            t_min = ty_min;
+        let t_hit = t_near;
+        let hit_point = orig + dir * t_hit;
+        let normal = self.get_normal(&hit_point);
+
+        // Coordenadas de textura simples basadas en la posición del punto de impacto
+        let u = (hit_point.x - self.min.x) / (self.max.x - self.min.x);
+        let v = (hit_point.y - self.min.y) / (self.max.y - self.min.y);
+        let color = self.material.get_color(u, v);
+
+        Intersect {
+            is_intersecting: true,
+            distance: t_hit,
+            point: hit_point,
+            normal,
+            material: Material {
+                diffuse: color,
+                ..self.material.clone()
+            },
         }
+    }
+}
 
-        if ty_max < t_max {
-            t_max = ty_max;
+impl Cube {
+    fn get_normal(&self, point: &Vec3) -> Vec3 {
+        if (point.x - self.min.x).abs() < 1e-4 {
+            return Vec3::new(-1.0, 0.0, 0.0);
         }
-
-        let mut tz_min = (self.min.z - ray_origin.z) / ray_direction.z;
-        let mut tz_max = (self.max.z - ray_origin.z) / ray_direction.z;
-
-        if tz_min > tz_max {
-            std::mem::swap(&mut tz_min, &mut tz_max);
+        if (point.x - self.max.x).abs() < 1e-4 {
+            return Vec3::new(1.0, 0.0, 0.0);
         }
-
-        if (t_min > tz_max) || (tz_min > t_max) {
-            return Intersect::empty();
+        if (point.y - self.min.y).abs() < 1e-4 {
+            return Vec3::new(0.0, -1.0, 0.0);
         }
-
-        if tz_min > t_min {
-            t_min = tz_min;
+        if (point.y - self.max.y).abs() < 1e-4 {
+            return Vec3::new(0.0, 1.0, 0.0);
         }
-
-        if tz_max < t_max {
-            t_max = tz_max;
+        if (point.z - self.min.z).abs() < 1e-4 {
+            return Vec3::new(0.0, 0.0, -1.0);
         }
+        if (point.z - self.max.z).abs() < 1e-4 {
+            return Vec3::new(0.0, 0.0, 1.0);
+        }
+        Vec3::zeros()
+    }
+}
 
-        let point = ray_origin + ray_direction * t_min;
-        let normal = if point.x == self.min.x {
-            Vec3::new(-1.0, 0.0, 0.0)
-        } else if point.x == self.max.x {
-            Vec3::new(1.0, 0.0, 0.0)
-        } else if point.y == self.min.y {
-            Vec3::new(0.0, -1.0, 0.0)
-        } else if point.y == self.max.y {
-            Vec3::new(0.0, 1.0, 0.0)
-        } else if point.z == self.min.z {
-            Vec3::new(0.0, 0.0, -1.0)
-        } else {
-            Vec3::new(0.0, 0.0, 1.0)
-        };
-
-        Intersect::new(point, normal, t_min, self.material)
+impl Clone for Material {
+    fn clone(&self) -> Self {
+        Self {
+            diffuse: self.diffuse,
+            specular: self.specular,
+            albedo: self.albedo,
+            refractive_index: self.refractive_index,
+            texture: self.texture.clone(),
+        }
     }
 }

@@ -1,21 +1,18 @@
-
 mod framebuffer;
 mod ray_intersect;
-mod sphere;
 mod color;
 mod camera;
 mod light;
 mod material;
 mod cube;
 
-use minifb::{ Window, WindowOptions, Key };
+use minifb::{Window, WindowOptions, Key};
 use nalgebra_glm::{Vec3, normalize};
 use std::time::Duration;
 use std::f32::consts::PI;
 
 use crate::color::Color;
 use crate::ray_intersect::{Intersect, RayIntersect};
-use crate::sphere::Sphere;
 use crate::framebuffer::Framebuffer;
 use crate::camera::Camera;
 use crate::light::Light;
@@ -119,10 +116,10 @@ pub fn cast_ray(
     let light_intensity = light.intensity * (1.0 - shadow_intensity);
 
     let diffuse_intensity = intersect.normal.dot(&light_dir).max(0.0).min(1.0);
-    let diffuse = intersect.material.diffuse * intersect.material.albedo[0] * diffuse_intensity * light_intensity;
+    let diffuse = Color::new(intersect.material.diffuse[0], intersect.material.diffuse[1], intersect.material.diffuse[2]) * intersect.material.albedo[0] * diffuse_intensity * light_intensity;
 
     let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(intersect.material.specular);
-    let specular = light.color * intersect.material.albedo[1] * specular_intensity * light_intensity;
+    let specular = Color::new(light.color[0], light.color[1], light.color[2]) * intersect.material.albedo[1] * specular_intensity * light_intensity;
 
     let mut reflect_color = Color::black();
     let reflectivity = intersect.material.albedo[2];
@@ -131,7 +128,6 @@ pub fn cast_ray(
         let reflect_origin = offset_origin(&intersect, &reflect_dir);
         reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
     }
-
 
     let mut refract_color = Color::black();
     let transparency = intersect.material.albedo[3];
@@ -148,7 +144,7 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
-    let fov = PI/3.0;
+    let fov = PI / 3.0;
     let perspective_scale = (fov * 0.5).tan();
 
     for y in 0..framebuffer.height {
@@ -170,7 +166,6 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
         }
     }
 }
-
 fn main() {
     let window_width = 800;
     let window_height = 600;
@@ -185,33 +180,62 @@ fn main() {
         window_width,
         window_height,
         WindowOptions::default(),
-    ).unwrap();
+    )
+    .unwrap();
 
     let rubber = Material::new(
-        Color::new(80, 0, 0),
+        [80, 0, 0],
         1.0,
         [0.9, 0.1, 0.0, 0.0],
         0.0,
+        None,
     );
-
+    
     let ivory = Material::new(
-        Color::new(100, 100, 80),
+        [100, 100, 80],
         50.0,
         [0.6, 0.3, 0.6, 0.0],
         0.0,
+        None,
     );
-
+    
     let grass = Material::new(
-        Color::new(34, 139, 34),
+        [34, 139, 34],
         30.0,
         [0.8, 0.2, 0.0, 0.0],
         0.0,
+        Some("textures/grass.png"),
+    );
+
+    let dirt = Material::new(
+        [139, 69, 19],
+        30.0,
+        [0.8, 0.2, 0.0, 0.0],
+        0.0,
+        Some("textures/dirt.png"),
     );
 
     let objects: Vec<Box<dyn RayIntersect>> = vec![
-        Box::new(Cube { min: Vec3::new(-0.5, -0.5, -0.5), max: Vec3::new(0.5, 0.5, 0.5), material: rubber }),
-        Box::new(Cube { min: Vec3::new(-1.5, -1.5, 0.0), max: Vec3::new(-0.5, -0.5, 1.0), material: ivory }),
-        Box::new(Cube { min: Vec3::new(0.5, 0.5, 1.0), max: Vec3::new(1.5, 1.5, 2.0), material: grass }),
+        Box::new(Cube {
+            min: Vec3::new(-0.5, -0.5, -0.5),
+            max: Vec3::new(0.5, 0.5, 0.5),
+            material: rubber,
+        }),
+        Box::new(Cube {
+            min: Vec3::new(-1.5, -1.5, 0.0),
+            max: Vec3::new(-0.5, -0.5, 1.0),
+            material: ivory,
+        }),
+        Box::new(Cube {
+            min: Vec3::new(0.5, 0.5, 1.0),
+            max: Vec3::new(1.5, 1.5, 2.0),
+            material: grass,
+        }),
+        Box::new(Cube {
+            min: Vec3::new(-2.0, -2.0, -1.0),
+            max: Vec3::new(2.0, 2.0, 0.0),
+            material: dirt,
+        }),
     ];
 
     let mut camera = Camera::new(
@@ -222,16 +246,15 @@ fn main() {
 
     let light = Light::new(
         Vec3::new(1.0, -1.0, 5.0),
-        Color::new(255, 255, 255),
-        1.0
+        [255, 255, 255],
+        1.0,
     );
 
-    let rotation_speed = PI/10.0;
+    let rotation_speed = PI / 10.0;
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-
         if window.is_key_down(Key::Left) {
-            camera.orbit(rotation_speed, 0.0); 
+            camera.orbit(rotation_speed, 0.0);
         }
 
         if window.is_key_down(Key::Right) {

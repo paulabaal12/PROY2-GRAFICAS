@@ -16,6 +16,10 @@ impl Camera {
             up
         }
     }
+    pub fn zoom(&mut self, delta: f32) {
+        let forward = (self.center - self.eye).normalize();
+        self.eye += forward * delta;
+    }
 
     pub fn base_change(&self, vector: &Vec3) -> Vec3 {
         let forward = (self.center - self.eye).normalize();

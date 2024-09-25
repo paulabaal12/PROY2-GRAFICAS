@@ -1,115 +1,142 @@
 use nalgebra_glm::Vec3;
-use std::rc::Rc;
-use image::DynamicImage; 
+use crate::ray_intersect::{RayIntersect, Intersect};
 use crate::material::Material;
-use crate::ray_intersect::{Intersect, RayIntersect};
+use std::rc::Rc;
 
+#[derive(Clone)]
 pub struct Cube {
     pub min: Vec3,
     pub max: Vec3,
-    pub topface_texture: Rc<DynamicImage>,
-    pub sideface_texture: Rc<DynamicImage>,
-    pub bottomface_texture: Rc<DynamicImage>,
+    pub top_material: Material,
+    pub bottom_material: Material,
+    pub side_material: Material,
 }
 
 impl Cube {
-    fn get_uv(&self, point: &Vec3, normal: &Vec3) -> (f32, f32) {
-        let (u, v) = if normal.y.abs() > 0.5 {  // Superior o inferior
-            (
-                (point.x - self.min.x) / (self.max.x - self.min.x),
-                (point.z - self.min.z) / (self.max.z - self.min.z)
-            )
-        } else if normal.x.abs() > 0.5 {  // Lados (izquierda o derecha)
-            (
-                (point.z - self.min.z) / (self.max.z - self.min.z),
-                (point.y - self.min.y) / (self.max.y - self.min.y)
-            )
-        } else {  // Frente o atrás
-            (
-                (point.x - self.min.x) / (self.max.x - self.min.x),
-                (point.y - self.min.y) / (self.max.y - self.min.y)
-            )
-        };
+    pub fn new(min: Vec3, max: Vec3, top_material: Material, bottom_material: Material, side_material: Material) -> Self {
+        Cube {
+            min,
+            max,
+            top_material,
+            bottom_material,
+            side_material,
+        }
+    }
 
+    fn get_material(&self, normal: &Vec3) -> &Material {
+        if normal.y.abs() > 0.9 {
+            if normal.y > 0.0 {
+                &self.top_material
+            } else {
+                &self.bottom_material
+            }
+        } else {
+            &self.side_material
+        }
+    }
+    
+    fn get_uv(&self, point: &Vec3, normal: &Vec3) -> (f32, f32) {
+        let (u, v) = if normal.y.abs() > 0.9 {
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.z - self.min.z) / (self.max.z - self.min.z);
+            (u, v)
+        } else if normal.x.abs() > 0.9 {
+            let u = (point.z - self.min.z) / (self.max.z - self.min.z);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        } else {
+            let u = (point.x - self.min.x) / (self.max.x - self.min.x);
+            let v = (point.y - self.min.y) / (self.max.y - self.min.y);
+            (u, v)
+        };
+        
+        self.clamp_uv(u, v)
+    }
+
+    fn clamp_uv(&self, u: f32, v: f32) -> (f32, f32) {
         (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0))
     }
 
-    fn intersect_plane(
-        &self,
-        origin: &Vec3,
-        direction: &Vec3,
-        plane_point: &Vec3,
-        plane_normal: &Vec3
-    ) -> Option<Vec3> {
-        let denom = direction.dot(plane_normal);
-        let epsilon = 1e-6; 
-        if denom.abs() > epsilon {
-            let t = (plane_point - origin).dot(plane_normal) / denom;
-            if t >= 0.0 {
-                return Some(origin + direction * t);
-            }
-        }
-        None
-    }
-    
-    fn get_material_for_face(&self, normal: &Vec3) -> Material {
-        if normal.y > 0.5 {
-            Material::new(Some((*self.topface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
-        } else if normal.y < -0.5 {
-            Material::new(Some((*self.bottomface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
+    fn calculate_normal(&self, point: Vec3) -> Vec3 {
+        let epsilon = 1e-4;
+        if (point.x - self.min.x).abs() < epsilon {
+            Vec3::new(-1.0, 0.0, 0.0)
+        } else if (point.x - self.max.x).abs() < epsilon {
+            Vec3::new(1.0, 0.0, 0.0)
+        } else if (point.y - self.min.y).abs() < epsilon {
+            Vec3::new(0.0, -1.0, 0.0)
+        } else if (point.y - self.max.y).abs() < epsilon {
+            Vec3::new(0.0, 1.0, 0.0)
+        } else if (point.z - self.min.z).abs() < epsilon {
+            Vec3::new(0.0, 0.0, -1.0)
         } else {
-            Material::new(Some((*self.sideface_texture).clone()), 0.5, [1.0, 1.0, 1.0, 1.0], 1.0)
+            Vec3::new(0.0, 0.0, 1.0)
         }
     }
 }
 
+   
+
 impl RayIntersect for Cube {
-    fn ray_intersect(&self, origin: &Vec3, direction: &Vec3) -> Intersect {
-        let mut closest_intersect = Intersect::empty();
-        let mut min_distance = f32::INFINITY;
+    fn ray_intersect(&self, ray_origin: &Vec3, ray_direction: &Vec3) -> Intersect {
+        let mut t_min = (self.min.x - ray_origin.x) / ray_direction.x;
+        let mut t_max = (self.max.x - ray_origin.x) / ray_direction.x;
 
-        let normals = [
-            Vec3::new(1.0, 0.0, 0.0),
-            Vec3::new(-1.0, 0.0, 0.0),
-            Vec3::new(0.0, 1.0, 0.0),
-            Vec3::new(0.0, -1.0, 0.0),
-            Vec3::new(0.0, 0.0, 1.0),
-            Vec3::new(0.0, 0.0, -1.0),
-        ];
-
-        let points = [
-            Vec3::new(self.max.x, self.min.y, self.min.z),
-            Vec3::new(self.min.x, self.min.y, self.min.z),
-            Vec3::new(self.min.x, self.max.y, self.min.z),
-            Vec3::new(self.min.x, self.min.y, self.min.z),
-            Vec3::new(self.min.x, self.min.y, self.max.z),
-            Vec3::new(self.min.x, self.min.y, self.min.z),
-        ];
-
-        for i in 0..6 {
-            if let Some(intersect_point) = self.intersect_plane(origin, direction, &points[i], &normals[i]) {
-                if intersect_point.x >= self.min.x && intersect_point.x <= self.max.x &&
-                   intersect_point.y >= self.min.y && intersect_point.y <= self.max.y &&
-                   intersect_point.z >= self.min.z && intersect_point.z <= self.max.z {
-                    
-                    let distance = (intersect_point - origin).magnitude();
-                    if distance < min_distance {
-                        min_distance = distance;
-                        let (u, v) = self.get_uv(&intersect_point, &normals[i]);
-                        closest_intersect = Intersect {
-                            is_intersecting: true,
-                            distance,
-                            point: intersect_point,
-                            normal: normals[i],
-                            u: Some(u),
-                            v: Some(v),
-                            material: self.get_material_for_face(&normals[i]),
-                        };
-                    }
-                }
-            }
+        if t_min > t_max {
+            std::mem::swap(&mut t_min, &mut t_max);
         }
 
-        closest_intersect
+        let mut t_y_min = (self.min.y - ray_origin.y) / ray_direction.y;
+        let mut t_y_max = (self.max.y - ray_origin.y) / ray_direction.y;
+
+        if t_y_min > t_y_max {
+            std::mem::swap(&mut t_y_min, &mut t_y_max);
+        }
+
+        if (t_min > t_y_max) || (t_y_min > t_max) {
+            return Intersect::empty();
+        }
+
+        if t_y_min > t_min {
+            t_min = t_y_min;
+        }
+
+        if t_y_max < t_max {
+            t_max = t_y_max;
+        }
+
+        let mut t_z_min = (self.min.z - ray_origin.z) / ray_direction.z;
+        let mut t_z_max = (self.max.z - ray_origin.z) / ray_direction.z;
+
+        if t_z_min > t_z_max {
+            std::mem::swap(&mut t_z_min, &mut t_z_max);
+        }
+
+        if (t_min > t_z_max) || (t_z_min > t_max) {
+            return Intersect::empty();
+        }
+
+        if t_z_min > t_min {
+            t_min = t_z_min;
+        }
+
+        if t_min < 0.0 {
+            return Intersect::empty();
+        }
+
+        let point_on_surface = ray_origin + ray_direction * t_min;
+        let normal = self.calculate_normal(point_on_surface);
+        let material = self.get_material(&normal);
+        let (u, v) = self.get_uv(&point_on_surface, &normal);
+
+        Intersect {
+            point: point_on_surface,
+            normal,
+            distance: t_min,
+            material: material.clone(),
+            is_intersecting: true,
+            u: Some(u),
+            v: Some(v),
+        }
     }
 }

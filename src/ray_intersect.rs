@@ -19,13 +19,32 @@ impl Intersect {
             distance: f32::INFINITY,
             point: Vec3::zeros(),
             normal: Vec3::zeros(),
-            material: Material::new(None, 0.0, [0.0, 0.0, 0.0, 0.0], 1.0),
+            material: Material::new([0.0, 0.0, 0.0, 0.0], [0, 0, 0], 0.0, 0.0, None),
             u: None,
             v: None,
         }
+
+        
+    }
+
+    pub fn new(point: Vec3, normal: Vec3, distance: f32, material: Material) -> Self {
+
+        Intersect {
+            is_intersecting: true,
+            point,
+            normal,
+            distance,
+            material,
+            u: None,
+            v: None,
+        }
+
     }
 }
 
 pub trait RayIntersect {
     fn ray_intersect(&self, ray_origin: &Vec3, ray_direction: &Vec3) -> Intersect;
 }
+
+
+

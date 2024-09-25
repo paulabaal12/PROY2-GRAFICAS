@@ -5,6 +5,7 @@ mod camera;
 mod light;
 mod material;
 mod cube;
+mod texture; // Add this line to include the texture module
 
 use minifb::{Window, WindowOptions, Key};
 use image::open;
@@ -20,6 +21,7 @@ use crate::camera::Camera;
 use crate::light::Light;
 use crate::cube::Cube;
 use crate::material::Material;
+use crate::texture::Texture; // Add this line to import the Texture type
 
 
 const ORIGIN_BIAS: f32 = 1e-4;
@@ -109,7 +111,6 @@ fn cast_ray(
     if !intersect.is_intersecting {
         return SKYBOX_COLOR;
     }
-
     
     let light_dir = (light.position - intersect.point).normalize();
     let view_dir = (ray_origin - intersect.point).normalize();
@@ -144,7 +145,9 @@ fn cast_ray(
 
     let diffuse_intensity = intersect.normal.dot(&(-ray_direction)).max(0.0).min(1.0);
     let light_color = Color::new(texture_color[0], texture_color[1], texture_color[2]) * diffuse_intensity;
-
+    let u = intersect.u.unwrap_or(0.0);
+    let v = intersect.v.unwrap_or(0.0);
+    let texture_color = intersect.material.get_texture_color(u, v);
     light_color
 }
 
@@ -174,7 +177,6 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
         }
     }
 }
-
 fn main() {
     let window_width = 800;
     let window_height = 600;
@@ -191,18 +193,35 @@ fn main() {
         WindowOptions::default(),
     )
     .unwrap();
+let grass_texture = Rc::new(Texture::new("textures/snow.png"));
+let dirt_texture = Rc::new(Texture::new("textures/snoww.png"));
+let stone_texture = Rc::new(Texture::new("textures/snoww.png"));
 
-    let grass_texture = Rc::new(open("textures/water.png").expect("Failed to load grass texture"));
-    let dirt_texture = Rc::new(open("textures/snoww.png").expect("Failed to load dirt texture"));
-    let stone_texture = Rc::new(open("textures/snoww.png").expect("Failed to load stone texture"));
-
-    let cube = Cube {
-        min: Vec3::new(-5.0, -1.0, -5.0),
-        max: Vec3::new(5.0, 0.0, 5.0),
-        topface_texture: grass_texture.clone(),
-        sideface_texture: stone_texture.clone(),
-        bottomface_texture: dirt_texture.clone(),
-    };
+let cube = Cube::new(
+    Vec3::new(-5.0, -1.0, -5.0),
+    Vec3::new(5.0, 0.0, 5.0),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],  // albedo
+        [255, 255, 255],       // diffuse color (white)
+        50.0,                  // specular
+        1.0,                   // refractive index
+        Some(grass_texture.clone())
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(dirt_texture.clone())
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(stone_texture.clone())
+    )
+);
 
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 10.0),

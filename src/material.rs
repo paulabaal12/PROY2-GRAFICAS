@@ -1,34 +1,49 @@
-use image::{DynamicImage, GenericImageView, Rgba};
+use std::rc::Rc;
+use crate::texture::Texture;
 
 #[derive(Clone)]
 #[derive(Debug)]
+
 pub struct Material {
-    pub texture: Option<DynamicImage>,
-    pub specular: f32,
     pub albedo: [f32; 4],
+    pub diffuse_color: [u8; 3],
+    pub specular: f32,
     pub refractive_index: f32,
-    }
+    pub texture: Option<Rc<Texture>>,
+}
 
 impl Material {
-    pub fn new(texture: Option<DynamicImage>,
-        specular: f32,
+    pub fn new(
         albedo: [f32; 4],
-        refractive_index: f32, ) -> Self {
-        Material { texture ,
-            specular,
+        diffuse_color: [u8; 3],
+        specular: f32,
+        refractive_index: f32,
+        texture: Option<Rc<Texture>>,
+    ) -> Self {
+        Material {
             albedo,
-            refractive_index,}
-        
+            diffuse_color,
+            specular,
+            refractive_index,
+            texture,
+        }
     }
 
-    pub fn get_texture_color(&self, u: f32, v: f32) -> Rgba<u8> {
-        if let Some(ref texture) = self.texture {
-            let (width, height) = texture.dimensions();
-            let x = (u * width as f32) as u32 % width;
-            let y = (v * height as f32) as u32 % height;
-            texture.get_pixel(x, y)
+    pub fn default() -> Self {
+        Material {
+            albedo: [1.0, 0.0, 0.0, 0.0],
+            diffuse_color: [255, 0, 0],
+            specular: 50.0,
+            refractive_index: 1.0,
+            texture: None,
+        }
+    }
+
+    pub fn get_texture_color(&self, u: f32, v: f32) -> [u8; 3] {
+        if let Some(texture) = &self.texture {
+            texture.get_color(u, v)
         } else {
-            Rgba([255, 255, 255, 255])
+            self.diffuse_color
         }
     }
 }

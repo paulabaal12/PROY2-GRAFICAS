@@ -177,6 +177,7 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
         }
     }
 }
+
 fn main() {
     let window_width = 600;
     let window_height = 400;
@@ -193,52 +194,108 @@ fn main() {
         WindowOptions::default(),
     )
     .unwrap();
-let grass_texture = Rc::new(Texture::new("textures/snow.png"));
-let dirt_texture = Rc::new(Texture::new("textures/snoww.png"));
-let stone_texture = Rc::new(Texture::new("textures/snoww.png"));
 
-let cube = Cube::new(
-    Vec3::new(-5.0, -1.0, -5.0),
-    Vec3::new(4.0, 0.0, 4.0),
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],  
-        [255, 255, 255],       
-        50.0,                  
-        1.0,                   
-        Some(grass_texture.clone())
-    ),
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],
-        [255, 255, 255],
-        50.0,
-        1.0,
-        Some(dirt_texture.clone())
-    ),
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],
-        [255, 255, 255],
-        50.0,
-        1.0,
-        Some(stone_texture.clone())
-    )
-);
+    let snow_texture = Rc::new(Texture::new("textures/snow.png"));
+    let snow_texture2 = Rc::new(Texture::new("textures/snoww.png"));
+    let door_texture = Rc::new(Texture::new("textures/door.png"));
+    let wall_texture = Rc::new(Texture::new("textures/wood.png")); // Textura para las paredes
+
+    // Suelo más grueso
+    let ground = Cube::new(
+        Vec3::new(-5.0, -1.5, -5.0),
+        Vec3::new(8.0, 0.6, 8.0),
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(snow_texture.clone())
+        ),
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(snow_texture2.clone())
+        ),
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(snow_texture2.clone())
+        )
+    );
+
+    // Paredes de la cabaña (cubos que rodean la puerta)
+    let wall_front_left = Cube::new(
+        Vec3::new(-2.5, -1.0, -2.5),
+        Vec3::new(1.0, 2.5, 0.2), // Pared izquierda
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone()))
+    );
+
+    let wall_front_right = Cube::new(
+        Vec3::new(1.5, -1.0, -2.5),
+        Vec3::new(1.0, 2.5, 0.2), // Pared derecha
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone()))
+    );
+
+    let wall_back = Cube::new(
+        Vec3::new(-2.5, -1.0, 2.3),
+        Vec3::new(5.0, 2.5, 0.2), // Pared trasera
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone()))
+    );
+
+    // Pared lateral izquierda
+    let wall_left = Cube::new(
+        Vec3::new(-2.5, -1.0, -2.5),
+        Vec3::new(0.2, 2.5, 5.0),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(wall_texture.clone()))
+    );
+
+    // Pared lateral derecha
+    let door = Cube::new(
+        Vec3::new(2.3, -1.0, -2.5),
+        Vec3::new(0.2, 2.5, 5.0),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(door_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(door_texture.clone())),
+        Material::new([1.0, 0.0, 0.0, 0.0], [139, 69, 19], 10.0, 1.0, Some(door_texture.clone()))
+    );
+
 
     let mut camera = Camera::new(
-        Vec3::new(0.0, 5.0, 10.0),
+        Vec3::new(0.0, 5.0, 15.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
     );
 
     let light = Light::new(
-        Vec3::new(5.0, 10.0, 5.0),
+        Vec3::new(10.0, 15.0, 10.0),
         [255, 255, 255],
         1.0,
     );
 
     let rotation_speed = PI / 10.0;
 
-    let objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
+    let objects: Vec<Box<dyn RayIntersect>> = vec![ 
+        Box::new(ground),
+        Box::new(wall_front_left),
+        Box::new(wall_front_right),
+        Box::new(wall_back),
+        Box::new(wall_left),
+        Box::new(door),
+    
+    ];
 
+    // El resto del código main() se mantiene igual
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if window.is_key_down(Key::Left) {
             camera.orbit(rotation_speed, 0.0);

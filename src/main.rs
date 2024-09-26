@@ -284,7 +284,7 @@ let tronco = Cube::new(
     tronco_texture.clone(),
 );
 
-// hoja de arbol
+// Hoja del árbol 
 let hoja1 = Cube::new(
     Vec3::new(-5.0, 3.5, -0.5),    
     Vec3::new(-2.0, 4.5, 1.5),    
@@ -293,7 +293,7 @@ let hoja1 = Cube::new(
     hoja_texture.clone(),
 );
 
-// hoja de arbol
+// Hoja del árbol
 let hoja2 = Cube::new(
     Vec3::new(-4.5, 4.5, -0.5),    
     Vec3::new(-2.5, 5.5, 1.5),      
@@ -301,6 +301,25 @@ let hoja2 = Cube::new(
     hoja_texture.clone(),
     hoja_texture.clone(),
 );
+
+// Hoja del árbol
+let hoja3 = Cube::new(
+    Vec3::new(-4.75, 3.5, -1.5),    
+    Vec3::new(-2.25, 4.5, 1.5),      
+    hoja_texture.clone(),             
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
+// Hoja del árbol 
+let hoja4 = Cube::new(
+    Vec3::new(-4.75, 4.5, 0.5),     
+    Vec3::new(-2.25, 5.5, 1.5),      
+    hoja_texture.clone(),             
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
 
 // Techo de la casa
 let techo1 = Cube::new(
@@ -349,6 +368,8 @@ let techo3 = Cube::new(
         Box::new(tronco),
         Box::new(hoja1),
         Box::new(hoja2),
+        Box::new(hoja3),
+        Box::new(hoja4),
         Box::new(wall1),
         Box::new(wall2),
         Box::new(back_left),

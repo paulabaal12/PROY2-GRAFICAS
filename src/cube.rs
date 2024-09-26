@@ -1,38 +1,39 @@
 use nalgebra_glm::Vec3;
 use crate::ray_intersect::{RayIntersect, Intersect};
-use crate::material::Material;
+use crate::texture::Texture;
 use std::rc::Rc;
-
+use crate::material::Material;
+use crate::color::Color;
 
 #[derive(Clone)]
 pub struct Cube {
-    pub min: Vec3,
-    pub max: Vec3,
-    pub top_material: Material,
-    pub bottom_material: Material,
-    pub side_material: Material,
+    pub min: Vec3,  
+    pub max: Vec3,  
+    pub top_texture: Rc<Texture>,    
+    pub bottom_texture: Rc<Texture>,
+    pub side_texture: Rc<Texture>,   
 }
 
 impl Cube {
-    pub fn new(min: Vec3, max: Vec3, top_material: Material, bottom_material: Material, side_material: Material) -> Self {
+    pub fn new(min: Vec3, max: Vec3, top_texture: Rc<Texture>, bottom_texture: Rc<Texture>, side_texture: Rc<Texture>) -> Self {
         Cube {
             min,
             max,
-            top_material,
-            bottom_material,
-            side_material,
+            top_texture,
+            bottom_texture,
+            side_texture,
         }
     }
 
-    fn get_material(&self, normal: &Vec3) -> &Material {
+    fn get_texture(&self, normal: &Vec3) -> &Rc<Texture> {
         if normal.y.abs() > 0.9 {
             if normal.y > 0.0 {
-                &self.top_material
+                &self.top_texture
             } else {
-                &self.bottom_material
+                &self.bottom_texture
             }
         } else {
-            &self.side_material
+            &self.side_texture
         }
     }
 
@@ -77,8 +78,6 @@ impl Cube {
         }
     }
 }
-
-
 
 impl RayIntersect for Cube {
     fn ray_intersect(&self, ray_origin: &Vec3, ray_direction: &Vec3) -> Intersect {
@@ -129,14 +128,20 @@ impl RayIntersect for Cube {
 
         let point_on_surface = ray_origin + ray_direction * t_min;
         let normal = self.calculate_normal(point_on_surface);
-        let material = self.get_material(&normal);
+        let texture = self.get_texture(&normal);
         let (u, v) = self.get_uv(&point_on_surface, &normal);
 
         Intersect {
             point: point_on_surface,
             normal,
             distance: t_min,
-            material: material.clone(),
+            material: Material::new(
+                [1.0, 1.0, 1.0, 1.0],  // albedo
+                [255, 255, 255],       // diffuse_color
+                0.5,                   // specular
+                1.0,                   // refractive_index
+                Some(texture.clone())  // texture
+            ), 
             is_intersecting: true,
             u: Some(u),
             v: Some(v),

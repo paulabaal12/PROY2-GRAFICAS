@@ -25,7 +25,10 @@ use crate::texture::Texture;
 
 
 const ORIGIN_BIAS: f32 = 1e-4;
-const SKYBOX_COLOR: Color = Color::new(68, 142, 228);
+
+const SKYBOX_COLOR_CELESTE: Color = Color::new(197, 237, 248);
+const SKYBOX_COLOR_AZUL_OSCURO: Color = Color::new(14, 21, 101);
+static mut SKYBOX_COLOR: Color = Color::new(68, 142, 228);
 
 fn offset_origin(intersect: &Intersect, direction: &Vec3) -> Vec3 {
     let offset = intersect.normal * ORIGIN_BIAS;
@@ -92,9 +95,10 @@ fn cast_ray(
     objects: &[Box<dyn RayIntersect>],
     light: &Light,
     depth: u32,
+    skybox_color: &Color,
 ) -> Color {
     if depth > 3 {
-        return SKYBOX_COLOR;
+        return *skybox_color;
     }
 
     let mut intersect = Intersect::empty();
@@ -109,9 +113,9 @@ fn cast_ray(
     }
 
     if !intersect.is_intersecting {
-        return SKYBOX_COLOR;
+        return *skybox_color;
     }
-    
+
     let light_dir = (light.position - intersect.point).normalize();
     let view_dir = (ray_origin - intersect.point).normalize();
     let reflect_dir = reflect(&-light_dir, &intersect.normal).normalize();
@@ -126,28 +130,24 @@ fn cast_ray(
     if reflectivity > 0.0 {
         let reflect_dir = reflect(&ray_direction, &intersect.normal).normalize();
         let reflect_origin = offset_origin(&intersect, &reflect_dir);
-        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
+        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1, skybox_color);
     }
-
 
     let mut refract_color = Color::black();
     let transparency = intersect.material.albedo[3];
     if transparency > 0.0 {
         let refract_dir = refract(&ray_direction, &intersect.normal, intersect.material.refractive_index);
         let refract_origin = offset_origin(&intersect, &refract_dir);
-        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1);
+        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1, skybox_color);
     }
 
-    (specular) * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency);
+    specular * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency);
     let u = intersect.u.unwrap_or(0.0);
     let v = intersect.v.unwrap_or(0.0);
     let texture_color = intersect.material.get_texture_color(u, v);
 
     let diffuse_intensity = intersect.normal.dot(&(-ray_direction)).max(0.0).min(1.0);
     let light_color = Color::new(texture_color[0], texture_color[1], texture_color[2]) * diffuse_intensity;
-    let u = intersect.u.unwrap_or(0.0);
-    let v = intersect.v.unwrap_or(0.0);
-    let texture_color = intersect.material.get_texture_color(u, v);
     light_color
 }
 
@@ -158,25 +158,30 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
     let fov = PI / 3.0;
     let perspective_scale = (fov * 0.5).tan();
 
-    for y in 0..framebuffer.height {
-        for x in 0..framebuffer.width {
-            let screen_x = (2.0 * x as f32) / width - 1.0;
-            let screen_y = -(2.0 * y as f32) / height + 1.0;
+    unsafe {
+        let skybox_color = SKYBOX_COLOR;
+        
+        for y in 0..framebuffer.height {
+            for x in 0..framebuffer.width {
+                let screen_x = (2.0 * x as f32) / width - 1.0;
+                let screen_y = -(2.0 * y as f32) / height + 1.0;
 
-            let screen_x = screen_x * aspect_ratio * perspective_scale;
-            let screen_y = screen_y * perspective_scale;
+                let screen_x = screen_x * aspect_ratio * perspective_scale;
+                let screen_y = screen_y * perspective_scale;
 
-            let ray_direction = normalize(&Vec3::new(screen_x, screen_y, -1.0));
+                let ray_direction = normalize(&Vec3::new(screen_x, screen_y, -1.0));
 
-            let rotated_direction = camera.base_change(&ray_direction);
+                let rotated_direction = camera.base_change(&ray_direction);
 
-            let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0);
+                let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0, &skybox_color);
 
-            framebuffer.set_current_color(pixel_color.to_hex());
-            framebuffer.point(x, y);
+                framebuffer.set_current_color(pixel_color.to_hex());
+                framebuffer.point(x, y);
+            }
         }
     }
 }
+
 
 fn main() {
     let window_width = 600;
@@ -428,6 +433,15 @@ let hoja4_2 = Cube::new(
         if window.is_key_down(Key::Down) {
             camera.orbit(0.0, rotation_speed);
         }
+
+        if window.is_key_down(Key::D) {
+            unsafe { SKYBOX_COLOR = SKYBOX_COLOR_CELESTE; }
+        } 
+
+        if window.is_key_down(Key::N) {
+            unsafe { SKYBOX_COLOR = SKYBOX_COLOR_AZUL_OSCURO; }
+        } 
+
 
         render(&mut framebuffer, &objects, &camera, &light);
 

@@ -256,26 +256,7 @@ let back_right = Cube::new(
 );
 
 
-
-// Tronco del árbol, ahora más bajito
-let tronco = Cube::new(
-    Vec3::new(-4.0, -1.5, -0.5),  // Posición inicial
-    Vec3::new(-3.0, 2.0, 0.3),     // Ajusta la posición final Y para que sea más bajo
-    tronco_texture.clone(),
-    tronco_texture.clone(),
-    tronco_texture.clone(),
-);
-
-// Hoja del árbol, ahora más gruesa
-let hoja = Cube::new(
-    Vec3::new(-5.0, 2.0, -0.5),    // Mantiene la posición X
-    Vec3::new(-2.0, 3.0, 1.5),      // Aumenta el grosor cambiando la posición Z
-    hoja_texture.clone(),            // Textura para la hoja
-    hoja_texture.clone(),
-    hoja_texture.clone(),
-);
-
-// Tronco del árbol c
+// Tronco del árbol 
 let tronco = Cube::new(
     Vec3::new(-4.0, -1.5, -0.5),  
     Vec3::new(-3.0, 3.5, 0.3),  
@@ -346,8 +327,54 @@ let techo3 = Cube::new(
     techo_texture.clone(),
 );
 
+// Tronco del árbol 2
+let tronco2 = Cube::new(
+    Vec3::new(5.5, -1.5, 6.0),   
+    Vec3::new(6.5, 3.5, 6.5),    
+    tronco_texture.clone(),
+    tronco_texture.clone(),
+    tronco_texture.clone(),
+);
 
-    
+// Hoja del árbol 1 
+let hoja1_2 = Cube::new(
+    Vec3::new(4.3, 3.5, 6.0),   
+    Vec3::new(6.8, 4.5, 7.0),   
+    hoja_texture.clone(),           
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
+// Hoja del árbol 
+let hoja2_2 = Cube::new(
+    Vec3::new(4.8, 4.5, 6.0),    
+    Vec3::new(6.6, 5.0, 7.0),     
+    hoja_texture.clone(),           
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
+// Hoja del árbol 
+let hoja3_2 = Cube::new(
+    Vec3::new(4.5, 3.5, 5.8),   
+    Vec3::new(6.5, 4.5, 6.5),     
+    hoja_texture.clone(),           
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
+
+let hoja4_2 = Cube::new(
+    Vec3::new(4.8, 4.0, 6.5),   
+    Vec3::new(6.6, 5.0, 7.5),     
+    hoja_texture.clone(),           
+    hoja_texture.clone(),
+    hoja_texture.clone(),
+);
+
+
+
+
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 15.0),
         Vec3::new(0.0, 0.0, 0.0),
@@ -377,6 +404,12 @@ let techo3 = Cube::new(
         Box::new(techo1),
         Box::new(techo2),
         Box::new(techo3),
+        Box::new(tronco2),
+        Box::new(hoja1_2),
+        Box::new(hoja2_2),
+        Box::new(hoja3_2),
+        Box::new(hoja4_2),
+
     ];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {

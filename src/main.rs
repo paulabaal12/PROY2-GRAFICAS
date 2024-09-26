@@ -188,7 +188,7 @@ fn main() {
     let window_height = 400;
     let framebuffer_width = 600;
     let framebuffer_height = 400;
-    let frame_delay = Duration::from_millis(16);
+    let frame_delay = Duration::from_millis(18);
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
 
@@ -207,6 +207,17 @@ fn main() {
     let techo_texture = Rc::new(Texture::new("textures/madera.png")); 
     let tronco_texture = Rc::new(Texture::new("textures/tronco.png")); 
     let hoja_texture = Rc::new(Texture::new("textures/flor.png"));
+    let piedra_texture = Rc::new(Texture::new("textures/piedra3.png"));
+
+    let agua_textures = vec![
+        Rc::new(Texture::new("textures/agua1.png")),
+        Rc::new(Texture::new("textures/agua2.png")),
+        Rc::new(Texture::new("textures/agua3.png")),
+        Rc::new(Texture::new("textures/agua4.png")),
+    ];
+
+    let mut animation_frame = 10;
+
 
     let ground = Cube::new(
         Vec3::new(-5.0, -1.5, -5.0),
@@ -378,6 +389,14 @@ let hoja4_2 = Cube::new(
 );
 
 
+let mut jacuzzi = Cube::new(
+    Vec3::new(-4.0, -1.5, 4.5),  // Mantén la posición
+    Vec3::new(1.0, 1.0, 6.5),     // Aumenta el ancho de 2.0 a 3.0
+    agua_textures[0].clone(),      
+    agua_textures[0].clone(),
+    piedra_texture.clone(),
+);
+
 
 
     let mut camera = Camera::new(
@@ -394,7 +413,7 @@ let hoja4_2 = Cube::new(
 
     let rotation_speed = PI / 10.0;
 
-    let objects: Vec<Box<dyn RayIntersect>> = vec![
+    let mut objects: Vec<Box<dyn RayIntersect>> = vec![
         Box::new(ground),
         Box::new(door),
         Box::new(tronco),
@@ -414,6 +433,7 @@ let hoja4_2 = Cube::new(
         Box::new(hoja2_2),
         Box::new(hoja3_2),
         Box::new(hoja4_2),
+        Box::new(jacuzzi),
 
     ];
 
@@ -441,6 +461,22 @@ let hoja4_2 = Cube::new(
         if window.is_key_down(Key::N) {
             unsafe { SKYBOX_COLOR = SKYBOX_COLOR_AZUL_OSCURO; }
         } 
+
+        animation_frame = (animation_frame + 3) % agua_textures.len();
+
+        jacuzzi = Cube::new(
+            Vec3::new(-4.0, -1.5, 4.5), 
+            Vec3::new(1.0, 1.0, 6.5),
+            agua_textures[animation_frame].clone(),
+            agua_textures[animation_frame].clone(),
+            piedra_texture.clone(),
+        );
+        
+
+        
+
+        let len = objects.len();
+        objects[len - 1] = Box::new(jacuzzi); 
 
 
         render(&mut framebuffer, &objects, &camera, &light);

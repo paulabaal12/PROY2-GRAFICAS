@@ -196,9 +196,11 @@ fn main() {
     .unwrap();
 
     let snow_texture = Rc::new(Texture::new("textures/snow.png"));
-    let snow_texture2 = Rc::new(Texture::new("textures/snoww.png"));
+    let snow_texture2 = Rc::new(Texture::new("textures/snow1.png"));
     let door_texture = Rc::new(Texture::new("textures/door2.png"));
     let wall_texture = Rc::new(Texture::new("textures/paredd.png")); 
+    let techo_texture = Rc::new(Texture::new("textures/madera.png")); 
+    let tronco_texture = Rc::new(Texture::new("textures/tronco.png")); 
 
     let ground = Cube::new(
         Vec3::new(-5.0, -1.5, -5.0),
@@ -307,8 +309,35 @@ fn main() {
     );
     
 
+    let tronco = Cube::new(
+        Vec3::new(-4.0, -2.0, 6.0),  
+        Vec3::new(-3.0, 3.5, 5.0),    
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(tronco_texture.clone()),
+        ),
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(tronco_texture.clone()),
+        ),
+        Material::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [255, 255, 255],
+            50.0,
+            1.0,
+            Some(tronco_texture.clone()),
+        ),
+    );
+    
+    
 let back = Cube::new(
-    Vec3::new(5.0, 1.0, -2.0), 
+    Vec3::new(5.0, -1.0, -2.0), 
     Vec3::new(-1.0, 4.0, 3.0),  
     Material::new(
         [1.0, 0.0, 0.0, 0.0],
@@ -332,6 +361,86 @@ let back = Cube::new(
         Some(wall_texture.clone()), 
     ),
 );
+
+let techo1 = Cube::new(
+    Vec3::new(-2.0, 5.0, -2.0),  
+    Vec3::new(6.0, 4.0, 3.0),  
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+);
+
+let techo2 = Cube::new(
+    Vec3::new(-1.0, 5.5, -2.0),  
+    Vec3::new(5.0, 4.0, 3.0),   
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+);
+
+let techo3 = Cube::new(
+    Vec3::new(0.0, 6.0, -2.0),  
+    Vec3::new(4.0, 4.0, 3.0),   
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+    Material::new(
+        [1.0, 0.0, 0.0, 0.0],
+        [255, 255, 255],
+        50.0,
+        1.0,
+        Some(techo_texture.clone()),
+    ),
+);
+
+
     
     let mut camera = Camera::new(
         Vec3::new(0.0, 5.0, 15.0),
@@ -350,9 +459,13 @@ let back = Cube::new(
     let objects: Vec<Box<dyn RayIntersect>> = vec![
         Box::new(ground),
         Box::new(door),
+        Box::new(tronco),
         Box::new(wall1),
         Box::new(wall2),
         Box::new(back),
+        Box::new(techo1),
+        Box::new(techo2),
+        Box::new(techo3),
     ];
 
     while window.is_open() && !window.is_key_down(Key::Escape) {

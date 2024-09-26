@@ -35,6 +35,7 @@ impl Cube {
         }
     }
     
+    
     fn get_uv(&self, point: &Vec3, normal: &Vec3) -> (f32, f32) {
         let (u, v) = if normal.y.abs() > 0.9 {
             let u = (point.x - self.min.x) / (self.max.x - self.min.x);
@@ -49,10 +50,12 @@ impl Cube {
             let v = (point.y - self.min.y) / (self.max.y - self.min.y);
             (u, v)
         };
-        
+    
+        let v = 1.0 - v;  
+    
         self.clamp_uv(u, v)
     }
-
+    
     fn clamp_uv(&self, u: f32, v: f32) -> (f32, f32) {
         (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0))
     }

@@ -5,7 +5,9 @@ use std::f32::consts::PI;
 pub struct Camera {
     pub eye: Vec3,
     pub center: Vec3,
-    pub up: Vec3
+    pub up: Vec3,
+    pub fov: f32,
+
 }
 
 impl Camera {
@@ -13,7 +15,8 @@ impl Camera {
         Camera {
             eye,
             center,
-            up
+            up,
+            fov: 90.0,
         }
     }
     pub fn zoom(&mut self, delta: f32) {
@@ -50,4 +53,21 @@ impl Camera {
 
         self.eye = new_eye;
     }
+
+    pub fn right(&self) -> Vec3 {
+        nalgebra_glm::normalize(&self.up.cross(&(self.center - self.eye)))
+    }
+
+    pub fn forward(&self) -> Vec3 {
+        nalgebra_glm::normalize(&(self.center - self.eye))
+    }
+
+
+
+    pub fn up(&self) -> Vec3 {
+
+        self.up
+
+    }
 }
+

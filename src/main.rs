@@ -158,39 +158,42 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
     let fov = PI / 3.0;
     let perspective_scale = (fov * 0.5).tan();
 
-    unsafe {
-        let skybox_color = SKYBOX_COLOR;
-        
-        for y in 0..framebuffer.height {
-            for x in 0..framebuffer.width {
-                let screen_x = (2.0 * x as f32) / width - 1.0;
-                let screen_y = -(2.0 * y as f32) / height + 1.0;
+    let skybox_color = unsafe { SKYBOX_COLOR };
+    
+    let inv_width = 1.0 / width;
+    let inv_height = 1.0 / height;
 
-                let screen_x = screen_x * aspect_ratio * perspective_scale;
-                let screen_y = screen_y * perspective_scale;
+    for y in 0..framebuffer.height {
+        let screen_y = -(2.0 * y as f32 * inv_height) + 1.0;
+        let scaled_y = screen_y * perspective_scale;
 
-                let ray_direction = normalize(&Vec3::new(screen_x, screen_y, -1.0));
+        for x in 0..framebuffer.width {
+            let screen_x = (2.0 * x as f32 * inv_width) - 1.0;
+            let scaled_x = screen_x * aspect_ratio * perspective_scale;
 
-                let rotated_direction = camera.base_change(&ray_direction);
+            let ray_direction = Vec3::new(scaled_x, scaled_y, -1.0).normalize();
+            let rotated_direction = camera.base_change(&ray_direction);
 
-                let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0, &skybox_color);
+            let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0, &skybox_color);
 
-                framebuffer.set_current_color(pixel_color.to_hex());
-                framebuffer.point(x, y);
-            }
+            let index = y * framebuffer.width + x;
+            framebuffer.buffer[index] = pixel_color.to_hex();
         }
     }
 }
 
 
 fn main() {
-    let window_width = 600;
-    let window_height = 400;
-    let framebuffer_width = 600;
-    let framebuffer_height = 400;
-    let frame_delay = Duration::from_millis(18);
+    let window_width = 800;
+    let window_height = 600;
+    let framebuffer_width = 800;
+    let framebuffer_height = 600;
+    let low_res_width = framebuffer_width / 2;
+    let low_res_height = framebuffer_height / 2;
+    let frame_delay = Duration::from_millis(16);
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
+    let mut low_res_framebuffer = Framebuffer::new(low_res_width, low_res_height);
 
     let mut window = Window::new(
         "ICEEE",
@@ -216,7 +219,7 @@ fn main() {
         Rc::new(Texture::new("textures/agua4.png")),
     ];
 
-    let mut animation_frame = 10;
+    let mut animation_frame = 2;
 
 
     let ground = Cube::new(
@@ -226,6 +229,7 @@ fn main() {
         snow_texture.clone(),
         snow_texture2.clone(),
     );
+
     //Puerta
     let door = Cube::new(
         Vec3::new(2.0, 0.0, 0.0),
@@ -390,8 +394,8 @@ let hoja4_2 = Cube::new(
 
 
 let mut jacuzzi = Cube::new(
-    Vec3::new(-4.0, -1.5, 4.5),  // Mantén la posición
-    Vec3::new(1.0, 1.0, 6.5),     // Aumenta el ancho de 2.0 a 3.0
+    Vec3::new(-4.0, -1.5, 4.5),  
+    Vec3::new(1.0, 1.0, 6.5),    
     agua_textures[0].clone(),      
     agua_textures[0].clone(),
     piedra_texture.clone(),
@@ -466,7 +470,7 @@ let mut jacuzzi = Cube::new(
 
         jacuzzi = Cube::new(
             Vec3::new(-4.0, -1.5, 4.5), 
-            Vec3::new(1.0, 1.0, 6.5),
+            Vec3::new(1.0, 1.2, 7.0),
             agua_textures[animation_frame].clone(),
             agua_textures[animation_frame].clone(),
             piedra_texture.clone(),

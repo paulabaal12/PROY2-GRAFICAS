@@ -31,7 +31,7 @@ impl Material {
 
     pub fn default() -> Self {
         Material {
-            albedo: [1.0, 0.0, 0.0, 0.0],
+            albedo: [0.0, 0.0, 0.0, 0.0],
             diffuse_color: [255, 0, 0],
             specular: 50.0,
             refractive_index: 1.0,

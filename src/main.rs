@@ -260,21 +260,21 @@ fn main() {
         Vec3::new(1.0, 4.0, 3.0), 
         Material::new(
             [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()), 
         ),
         Material::new(
             [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()),
         ),
         Material::new(
             [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()), 
@@ -286,22 +286,22 @@ fn main() {
         Vec3::new(-1.0, 0.0, 0.0), 
         Vec3::new(5.0, 4.0, 3.0), 
         Material::new(
-            [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [0.0, 0.0, 0.0, 0.0],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()), 
         ),
         Material::new(
-            [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [0.0, 0.0, 0.0, 0.0],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()), 
         ),
         Material::new(
-            [1.0, 0.0, 0.0, 0.0],
-            [255, 255, 255],
+            [0.0, 0.0, 0.0, 0.0],
+            [183, 149, 92],
             50.0,
             1.0,
             Some(wall_texture.clone()), 
@@ -335,33 +335,32 @@ fn main() {
         ),
     );
     
+    let back = Cube::new(
+        Vec3::new(5.0, -1.0, -2.0), 
+        Vec3::new(-1.0, 4.0, 3.0),  
+        Material::new(
+            [1.0, 1.0, 1.0, 1.0], // Cambiado a blanco
+            [183, 149, 92],
+            50.0,
+            1.0,
+            Some(wall_texture.clone()), 
+        ),
+        Material::new(
+            [1.0, 1.0, 1.0, 1.0], // Cambiado a blanco
+            [183, 149, 92],
+            50.0,
+            1.0,
+            Some(wall_texture.clone()),
+        ),
+        Material::new(
+            [1.0, 1.0, 1.0, 1.0], // Cambiado a blanco
+            [183, 149, 92],
+            50.0,
+            1.0,
+            Some(wall_texture.clone()), 
+        ),
+    );
     
-let back = Cube::new(
-    Vec3::new(5.0, -1.0, -2.0), 
-    Vec3::new(-1.0, 4.0, 3.0),  
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],
-        [255, 255, 255],
-        50.0,
-        1.0,
-        Some(wall_texture.clone()), 
-    ),
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],
-        [255, 255, 255],
-        50.0,
-        1.0,
-        Some(wall_texture.clone()),
-    ),
-    Material::new(
-        [1.0, 0.0, 0.0, 0.0],
-        [255, 255, 255],
-        50.0,
-        1.0,
-        Some(wall_texture.clone()), 
-    ),
-);
-
 let techo1 = Cube::new(
     Vec3::new(-2.0, 5.0, -2.0),  
     Vec3::new(6.0, 4.0, 3.0),  

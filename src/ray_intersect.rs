@@ -26,20 +26,18 @@ impl Intersect {
 
         
     }
-
-    pub fn new(point: Vec3, normal: Vec3, distance: f32, material: Material) -> Self {
-
+    pub fn new(point: Vec3, normal: Vec3, distance: f32, material: Material, u: Option<f32>, v: Option<f32>) -> Self {
         Intersect {
             is_intersecting: true,
             point,
-            normal,
+            normal: normal.normalize(),  
             distance,
             material,
-            u: None,
-            v: None,
+            u,
+            v,
         }
-
     }
+
 }
 
 pub trait RayIntersect {

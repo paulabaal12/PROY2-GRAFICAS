@@ -8,8 +8,9 @@ mod cube;
 mod texture; 
 
 use minifb::{Window, WindowOptions, Key};
-use image::open;
+use image::{open, DynamicImage, GenericImageView};
 use nalgebra_glm::{Vec3, normalize};
+use std::sync::Arc;
 use std::time::Duration;
 use std::f32::consts::PI;
 use std::rc::Rc;
@@ -26,9 +27,64 @@ use crate::texture::Texture;
 
 const ORIGIN_BIAS: f32 = 1e-4;
 
-const SKYBOX_COLOR_CELESTE: Color = Color::new(197, 237, 248);
-const SKYBOX_COLOR_AZUL_OSCURO: Color = Color::new(14, 21, 101);
-static mut SKYBOX_COLOR: Color = Color::new(68, 142, 228);
+struct Skybox {
+    front: Arc<DynamicImage>,
+    back: Arc<DynamicImage>,
+    left: Arc<DynamicImage>,
+    right: Arc<DynamicImage>,
+    top: Arc<DynamicImage>,
+    bottom: Arc<DynamicImage>,
+}
+
+impl Skybox {
+    fn new(
+        front_path: &str,
+        back_path: &str,
+        left_path: &str,
+        right_path: &str,
+        top_path: &str,
+        bottom_path: &str,
+    ) -> Self {
+        Skybox {
+            front: Arc::new(image::open(front_path).expect("Failed to load front skybox image")),
+            back: Arc::new(image::open(back_path).expect("Failed to load back skybox image")),
+            left: Arc::new(image::open(left_path).expect("Failed to load left skybox image")),
+            right: Arc::new(image::open(right_path).expect("Failed to load right skybox image")),
+            top: Arc::new(image::open(top_path).expect("Failed to load top skybox image")),
+            bottom: Arc::new(image::open(bottom_path).expect("Failed to load bottom skybox image")),
+        }
+    }
+
+    fn get_color(&self, direction: &Vec3) -> Color {
+        let abs_x = direction.x.abs();
+        let abs_y = direction.y.abs();
+        let abs_z = direction.z.abs();
+
+        let (u, v, image) = if abs_x >= abs_y && abs_x >= abs_z {
+            if direction.x > 0.0 {
+                ((direction.z / abs_x + 1.0) / 2.0, (direction.y / abs_x + 1.0) / 2.0, &self.right)
+            } else {
+                ((-direction.z / abs_x + 1.0) / 2.0, (direction.y / abs_x + 1.0) / 2.0, &self.left)
+            }
+        } else if abs_y >= abs_x && abs_y >= abs_z {
+            if direction.y > 0.0 {
+                ((direction.x / abs_y + 1.0) / 2.0, (-direction.z / abs_y + 1.0) / 2.0, &self.top)
+            } else {
+                ((direction.x / abs_y + 1.0) / 2.0, (direction.z / abs_y + 1.0) / 2.0, &self.bottom)
+            }
+        } else {
+            if direction.z > 0.0 {
+                ((-direction.x / abs_z + 1.0) / 2.0, (direction.y / abs_z + 1.0) / 2.0, &self.front)
+            } else {
+                ((direction.x / abs_z + 1.0) / 2.0, (direction.y / abs_z + 1.0) / 2.0, &self.back)
+            }
+        };
+
+        let (width, height) = image.dimensions();
+        let pixel = image.get_pixel((u * width as f32) as u32, ((1.0 - v) * height as f32) as u32);
+        Color::new(pixel[0], pixel[1], pixel[2])
+    }
+}
 
 fn offset_origin(intersect: &Intersect, direction: &Vec3) -> Vec3 {
     let offset = intersect.normal * ORIGIN_BIAS;
@@ -95,10 +151,10 @@ fn cast_ray(
     objects: &[Box<dyn RayIntersect>],
     light: &Light,
     depth: u32,
-    skybox_color: &Color,
+    skybox: &Skybox,
 ) -> Color {
     if depth > 3 {
-        return *skybox_color;
+        return skybox.get_color(ray_direction);
     }
 
     let mut intersect = Intersect::empty();
@@ -111,9 +167,8 @@ fn cast_ray(
             intersect = i;
         }
     }
-
     if !intersect.is_intersecting {
-        return *skybox_color;
+        return skybox.get_color(ray_direction);
     }
 
     let light_dir = (light.position - intersect.point).normalize();
@@ -130,7 +185,7 @@ fn cast_ray(
     if reflectivity > 0.0 {
         let reflect_dir = reflect(&ray_direction, &intersect.normal).normalize();
         let reflect_origin = offset_origin(&intersect, &reflect_dir);
-        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1, skybox_color);
+        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1, skybox);
     }
 
     let mut refract_color = Color::black();
@@ -138,7 +193,7 @@ fn cast_ray(
     if transparency > 0.0 {
         let refract_dir = refract(&ray_direction, &intersect.normal, intersect.material.refractive_index);
         let refract_origin = offset_origin(&intersect, &refract_dir);
-        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1, skybox_color);
+        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1, skybox);
     }
 
     specular * (1.0 - reflectivity - transparency) + (reflect_color * reflectivity) + (refract_color * transparency);
@@ -151,15 +206,12 @@ fn cast_ray(
     light_color
 }
 
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light) {
+pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light, skybox: &Skybox) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
     let fov = PI / 3.0;
     let perspective_scale = (fov * 0.5).tan();
-
-    let skybox_color = unsafe { SKYBOX_COLOR };
-    
     let inv_width = 1.0 / width;
     let inv_height = 1.0 / height;
 
@@ -174,7 +226,7 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
             let ray_direction = Vec3::new(scaled_x, scaled_y, -1.0).normalize();
             let rotated_direction = camera.base_change(&ray_direction);
 
-            let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0, &skybox_color);
+            let pixel_color = cast_ray(&camera.eye, &rotated_direction, objects, light, 0, skybox);
 
             let index = y * framebuffer.width + x;
             framebuffer.buffer[index] = pixel_color.to_hex();
@@ -194,6 +246,29 @@ fn main() {
 
     let mut framebuffer = Framebuffer::new(framebuffer_width, framebuffer_height);
     let mut low_res_framebuffer = Framebuffer::new(low_res_width, low_res_height);
+
+    
+    //día 
+    let original_skybox = Skybox::new(
+        "textures/skybox/right.png",
+        "textures/skybox/right.png",
+        "textures/skybox/right.png",
+        "textures/skybox/right.png",
+        "textures/skybox/right.png",
+        "textures/skybox/right.png",
+    );
+
+    //simular noche
+    let alternate_skybox = Skybox::new(
+        "textures/skybox/altern.png",
+        "textures/skybox/altern.png",
+        "textures/skybox/altern.png",
+        "textures/skybox/altern.png",
+        "textures/skybox/altern.png",
+        "textures/skybox/altern.png",
+    );
+
+    let mut current_skybox = &original_skybox;
 
     let mut window = Window::new(
         "ICEEE",
@@ -458,13 +533,14 @@ let mut jacuzzi = Cube::new(
             camera.orbit(0.0, rotation_speed);
         }
 
-        if window.is_key_down(Key::D) {
-            unsafe { SKYBOX_COLOR = SKYBOX_COLOR_CELESTE; }
-        } 
-
         if window.is_key_down(Key::N) {
-            unsafe { SKYBOX_COLOR = SKYBOX_COLOR_AZUL_OSCURO; }
-        } 
+            current_skybox = &alternate_skybox;
+        }
+
+        if window.is_key_down(Key::D) {
+            current_skybox = &original_skybox;
+        }
+
 
         animation_frame = (animation_frame + 3) % agua_textures.len();
 
@@ -483,7 +559,7 @@ let mut jacuzzi = Cube::new(
         objects[len - 1] = Box::new(jacuzzi); 
 
 
-        render(&mut framebuffer, &objects, &camera, &light);
+        render(&mut framebuffer, &objects, &camera, &light, current_skybox);
 
         window
             .update_with_buffer(&framebuffer.buffer, framebuffer_width, framebuffer_height)

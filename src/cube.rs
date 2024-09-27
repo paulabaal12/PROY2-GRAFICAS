@@ -3,7 +3,7 @@ use crate::ray_intersect::{RayIntersect, Intersect};
 use crate::texture::Texture;
 use std::rc::Rc;
 use crate::material::Material;
-use crate::color::Color;
+
 
 #[derive(Clone)]
 pub struct Cube {

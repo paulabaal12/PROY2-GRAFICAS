@@ -26,6 +26,21 @@ impl Color {
     pub fn to_hex(&self) -> u32 {
         ((self.r as u32) << 16) | ((self.g as u32) << 8) | (self.b as u32)
     }
+
+    
+    pub fn scale(&self, factor: f32) -> Self {
+
+        Color {
+
+            r: (self.r as f32 * factor).min(255.0) as u8,
+
+            g: (self.g as f32 * factor).min(255.0) as u8,
+
+            b: (self.b as f32 * factor).min(255.0) as u8,
+
+        }
+
+    }
 }
 
 use std::ops::Add;
@@ -61,3 +76,6 @@ impl fmt::Display for Color {
         write!(f, "Color(r: {}, g: {}, b: {})", self.r, self.g, self.b)
     }
 }
+
+
+

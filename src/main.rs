@@ -260,18 +260,33 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
         }
     }
 }
-
-fn update_light(light: &mut Light, angle: f32, is_night: bool) {
+fn update_light(light: &mut Light, time_of_day: f32) {
+    let angle = time_of_day * 2.0 * PI;
     let radius = 15.0;
     light.position.x = radius * angle.cos();
-    light.position.y = radius * angle.sin();
+    light.position.y = radius * angle.sin().abs() + 5.0; 
+    light.position.z = radius * angle.sin();
 
-    if is_night {
-        light.color = [50, 50, 100]; 
-        light.intensity = -0.3;
-    } else {
+   
+    if time_of_day < 0.25 { // Amanecer
+        let t = time_of_day / 0.25;
+        light.color = [
+            (255.0 * t) as u8,
+            (200.0 * t) as u8,
+            (100.0 * t) as u8
+        ];
+        light.intensity = t * 2.0;
+    } else if time_of_day < 0.75 { // Día
         light.color = [255, 255, 255];
         light.intensity = 3.0;
+    } else { // Atardecer y noche
+        let t = (time_of_day - 0.75) / 0.25;
+        light.color = [
+            50,
+            (50.0 * (1.0 - t)) as u8,
+            (100.0 * (1.0 - t)) as u8
+        ];
+        light.intensity = 2.0 * (1.0 - t);
     }
 }
 
@@ -532,6 +547,9 @@ let mut jacuzzi = Cube::new(
         1.0,
     );
 
+    let mut time_of_day: f32 = 0.0; 
+    let day_cycle_speed: f32 = 0.001; 
+
     let rotation_speed = PI / 10.0;
     let zoom_speed = 1.0;
 
@@ -559,10 +577,11 @@ let mut jacuzzi = Cube::new(
 
     ];
 
-    let mut light_angle: f32 = 0.0;
-    let light_angle_speed: f32 = PI / 180.0; 
-    let mut is_night: bool = false;
-
+    const DAY_START: f32 = 0.25;
+    const DAY_END: f32 = 0.75;
+    let mut time_of_day: f32 = 0.5; // Comienza al mediodía
+    let day_cycle_speed: f32 = 0.001;
+    
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if window.is_key_down(Key::Left) {
@@ -587,27 +606,38 @@ let mut jacuzzi = Cube::new(
         if window.is_key_down(Key::X) {
             camera.zoom(zoom_speed);   // acercar
         }
-
         if window.is_key_down(Key::N) {
-            is_night = true; //  noche
-            current_skybox = &alternate_skybox; 
+            time_of_day = 0.0; // Medianoche
         }
-    
-       
+        
         if window.is_key_down(Key::D) {
-            is_night = false; //  día
-            current_skybox = &original_skybox; 
+            time_of_day = 0.5; // Mediodía
         }
     
-        // Actualiza el ángulo de la luz y la posición
-        light_angle += light_angle_speed;
-        if light_angle > 2.0 * PI {
-            light_angle -= 2.0 * PI;
+        // Controles para ajustar manualmente el tiempo
+        if window.is_key_down(Key::W) {
+            time_of_day = (time_of_day + 0.01).min(1.0);
         }
-        update_light(&mut light, light_angle, is_night);
-
-
-
+        if window.is_key_down(Key::S) {
+            time_of_day = (time_of_day - 0.01).max(0.0);
+        }
+    
+        // Avance automático del tiempo
+        time_of_day += day_cycle_speed;
+        if time_of_day >= 1.0 {
+            time_of_day -= 1.0;
+        }
+    
+        // Actualiza la luz basada en el tiempo del día
+        update_light(&mut light, time_of_day);
+    
+        // Determina el skybox actual
+        current_skybox = if time_of_day > DAY_START && time_of_day < DAY_END {
+            &original_skybox // Día
+        } else {
+            &alternate_skybox // Noche
+        };
+    
         animation_frame = (animation_frame + 3) % agua_textures.len();
 
         jacuzzi = Cube::new(

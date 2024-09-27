@@ -27,7 +27,7 @@ use crate::texture::Texture;
 
 const ORIGIN_BIAS: f32 = 1e-4;
 
-struct Skybox {
+pub struct Skybox {
     front: Arc<DynamicImage>,
     back: Arc<DynamicImage>,
     left: Arc<DynamicImage>,
@@ -121,6 +121,33 @@ fn refract(incident: &Vec3, normal: &Vec3, eta_t: f32) -> Vec3 {
         eta * incident + (eta * n_cosi - k.sqrt()) * n_normal
     }
 }
+
+//fresnel
+fn fresnel(incident: &Vec3, normal: &Vec3, eta_i: f32, eta_t: f32) -> f32 {
+    let cosi = incident.dot(normal).max(-1.0).min(1.0);
+    let mut etai = eta_i;
+    let mut etat = eta_t;
+
+    let mut n_cosi = cosi;
+    if cosi > 0.0 {
+        etai = eta_t;
+        etat = eta_i;
+        n_cosi = cosi;
+    } else {
+        n_cosi = -cosi;
+    }
+    let sint = etai / etat * (1.0 - n_cosi * n_cosi).sqrt();
+
+    if sint >= 1.0 {
+        return 1.0;  
+    }
+
+    let cost = (1.0 - sint * sint).sqrt();
+    let r_orth = ((etat * n_cosi) - (etai * cost)) / ((etat * n_cosi) + (etai * cost));
+    let r_parl = ((etai * n_cosi) - (etat * cost)) / ((etai * n_cosi) + (etat * cost));
+    (r_orth * r_orth + r_parl * r_parl) / 2.0
+}
+
 
 fn cast_shadow(
     intersect: &Intersect,
@@ -233,6 +260,21 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
         }
     }
 }
+
+fn update_light(light: &mut Light, angle: f32, is_night: bool) {
+    let radius = 15.0;
+    light.position.x = radius * angle.cos();
+    light.position.y = radius * angle.sin();
+
+    if is_night {
+        light.color = [50, 50, 100]; 
+        light.intensity = -0.3;
+    } else {
+        light.color = [255, 255, 255];
+        light.intensity = 3.0;
+    }
+}
+
 
 
 fn main() {
@@ -484,7 +526,7 @@ let mut jacuzzi = Cube::new(
         Vec3::new(0.0, 1.0, 0.0),
     );
 
-    let light = Light::new(
+    let mut light = Light::new(
         Vec3::new(10.0, 15.0, 10.0),
         [255, 255, 255],
         1.0,
@@ -517,6 +559,11 @@ let mut jacuzzi = Cube::new(
 
     ];
 
+    let mut light_angle: f32 = 0.0;
+    let light_angle_speed: f32 = PI / 180.0; 
+    let mut is_night: bool = false;
+
+
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if window.is_key_down(Key::Left) {
             camera.orbit(rotation_speed, 0.0);
@@ -533,15 +580,6 @@ let mut jacuzzi = Cube::new(
         if window.is_key_down(Key::Down) {
             camera.orbit(0.0, rotation_speed);
         }
-
-        if window.is_key_down(Key::N) {
-            current_skybox = &alternate_skybox;
-        }
-
-        if window.is_key_down(Key::D) {
-            current_skybox = &original_skybox;
-        }
-
          // Zoom de la cámara
         if window.is_key_down(Key::Y) {
             camera.zoom(-zoom_speed);  // alejar
@@ -549,6 +587,24 @@ let mut jacuzzi = Cube::new(
         if window.is_key_down(Key::X) {
             camera.zoom(zoom_speed);   // acercar
         }
+
+        if window.is_key_down(Key::N) {
+            is_night = true; //  noche
+            current_skybox = &alternate_skybox; 
+        }
+    
+       
+        if window.is_key_down(Key::D) {
+            is_night = false; //  día
+            current_skybox = &original_skybox; 
+        }
+    
+        // Actualiza el ángulo de la luz y la posición
+        light_angle += light_angle_speed;
+        if light_angle > 2.0 * PI {
+            light_angle -= 2.0 * PI;
+        }
+        update_light(&mut light, light_angle, is_night);
 
 
 

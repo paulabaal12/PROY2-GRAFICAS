@@ -21,7 +21,13 @@ impl Camera {
     }
     pub fn zoom(&mut self, delta: f32) {
         let forward = (self.center - self.eye).normalize();
-        self.eye += forward * delta;
+        
+        let new_eye = self.eye + forward * delta;
+
+        let min_distance = 0.1;
+        if (self.center - new_eye).magnitude() > min_distance {
+            self.eye = new_eye;
+        }
     }
 
     pub fn base_change(&self, vector: &Vec3) -> Vec3 {

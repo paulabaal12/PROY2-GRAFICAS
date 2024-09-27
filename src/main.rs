@@ -491,6 +491,7 @@ let mut jacuzzi = Cube::new(
     );
 
     let rotation_speed = PI / 10.0;
+    let zoom_speed = 1.0;
 
     let mut objects: Vec<Box<dyn RayIntersect>> = vec![
         Box::new(ground),
@@ -540,6 +541,15 @@ let mut jacuzzi = Cube::new(
         if window.is_key_down(Key::D) {
             current_skybox = &original_skybox;
         }
+
+         // Zoom de la cámara
+        if window.is_key_down(Key::Y) {
+            camera.zoom(-zoom_speed);  // alejar
+        }
+        if window.is_key_down(Key::X) {
+            camera.zoom(zoom_speed);   // acercar
+        }
+
 
 
         animation_frame = (animation_frame + 3) % agua_textures.len();
